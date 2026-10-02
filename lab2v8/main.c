@@ -21,7 +21,6 @@ void printInventory(const int inventory[]) {
     for (int i = 0; i < inventory_size; i++) {
         const char* name = getItemName(inventory[i]);
 
-        // если слот пустой (0) пишем "пусто" иначе название предмета
         if (inventory[i] == 0) {
             printf("Слот %d: [тут пусто]\n", i);
         }
@@ -35,7 +34,6 @@ void printInventory(const int inventory[]) {
 int main() {
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
-
 
     int current_day = 1;
     int current_hour = 8;
@@ -65,8 +63,9 @@ int main() {
         case 0:
             printf("Пока, фермер!\n");
             return 0;
+
         case 1:
-            // П1: показать время (с %02d чтобы было 08:00, а не 8:00)
+            // П1: показать время
             printf("Сейчас день %d, время: %02d:00\n", current_day, current_hour);
             break;
 
@@ -75,13 +74,12 @@ int main() {
             int add_hours;
             printf("Сколько часов хотите промотать? ");
             if (scanf("%d", &add_hours) != 1 || add_hours < 0) {
-                while (getchar() != '\n'); // очистка буфера
+                while (getchar() != '\n');
                 printf("Ошибка: введите неотрицательное число.\n\n");
                 break;
             }
 
             current_hour += add_hours;
-            // если часы ушли за 24, вычитаем и увеличиваем день
             while (current_hour >= 24) {
                 current_hour -= 24;
                 current_day++;
@@ -89,9 +87,11 @@ int main() {
             printf("Время промотано. Теперь день %d, %02d:00.\n\n", current_day, current_hour);
             break;
         }
+
         case 3:
             printInventory(inventory);
             break;
+
         case 4: {
             // П4: положить предмет
             int slot_index, item_id;
@@ -118,7 +118,10 @@ int main() {
         case 5: {
             // П5: выбросить предмет
             int slot_index;
+            const char* itemName = NULL;
+
             printf("Из какого слота (0-%d) выбросить предмет? ", inventory_size - 1);
+
             if (scanf("%d", &slot_index) != 1 || slot_index < 0 || slot_index >= inventory_size) {
                 while (getchar() != '\n');
                 printf("Ошибка: неверный номер слота.\n\n");
@@ -129,47 +132,50 @@ int main() {
                 printf("В этом слоте и так пусто.\n\n");
             }
             else {
+                itemName = getItemName(inventory[slot_index]);
                 inventory[slot_index] = 0;
-                const char* itemName = getItemName(inventory[slot_index]);
+
                 printf("Предмет '%s' из слота %d выброшен.\n\n", itemName, slot_index);
             }
             break;
         }
+
         case 6: {
-            // В8: быстрый доступ (найти предмет и переместить в слот 0)
+            // В8: быстрый доступ — найти предмет и переместить в слот 0
             int target_id;
             printf("Введите ID предмета для быстрого доступа: ");
+
             if (scanf("%d", &target_id) != 1 || target_id <= 0) {
-                const char* itemName = getItemName(target_id);
                 while (getchar() != '\n');
                 printf("Ошибка: неверный ID.\n\n");
                 break;
             }
 
-            const char* itemName = getItemName(target_id);
-
-
             int found_index = -1;
             for (int i = 0; i < inventory_size; i++) {
                 if (inventory[i] == target_id) {
                     found_index = i;
-                    break; // нашли первое совпадение и хватит
+                    break;
                 }
             }
 
             if (found_index == -1) {
-                printf("Предмет '%s' (ID: %d) не найден в инвентаре.\n\n", itemName, target_id);
+                const char* missingName = getItemName(target_id);
+                printf("Предмет '%s' не найден в инвентаре.\n\n", missingName);
             }
             else {
-                // меняем местами с нулевым слотом
+                const char* itemName = getItemName(inventory[found_index]);
+
                 int temp = inventory[0];
                 inventory[0] = inventory[found_index];
                 inventory[found_index] = temp;
-                printf("Предмет ID %d перемещён в слот 0.\n", target_id);
+
+                printf("Предмет «%s» перемещён в слот 0.\n", itemName);
                 printInventory(inventory);
             }
             break;
         }
+
         default:
             printf("Неверный выбор. Попробуйте еще раз.\n\n");
             break;
