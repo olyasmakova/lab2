@@ -47,11 +47,29 @@ int main() {
             printf("Пока, фермер!\n");
             return 0;
         case 1:
-            printf("П1 бебебе\n\n");
+            // Пункт 1: показать время (с %02d, чтобы было 08:00, а не 8:00)
+            printf("Сейчас день %d, время: %02d:00\n", current_day, current_hour);
             break;
-        case 2:
-            printf("П2 бебебе\n\n");
+
+        case 2: {
+            // Пункт 2: промотать время
+            int add_hours;
+            printf("Сколько часов хотите промотать? ");
+            if (scanf("%d", &add_hours) != 1 || add_hours < 0) {
+                while (getchar() != '\n'); // очистка буфера
+                printf("Ошибка: введите неотрицательное число.\n\n");
+                break;
+            }
+
+            current_hour += add_hours;
+            // Если часы ушли за 24, вычитаем и увеличиваем день
+            while (current_hour >= 24) {
+                current_hour -= 24;
+                current_day++;
+            }
+            printf("Время промотано. Теперь день %d, %02d:00.\n\n", current_day, current_hour);
             break;
+        }
         case 3:
             printInventory(inventory);
             break;
