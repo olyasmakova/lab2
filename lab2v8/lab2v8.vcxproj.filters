@@ -15,8 +15,8 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.c">
+    <None Include="readme.md">
       <Filter>Исходные файлы</Filter>
-    </ClCompile>
+    </None>
   </ItemGroup>
 </Project>
