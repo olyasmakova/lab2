@@ -140,10 +140,14 @@ int main() {
             int target_id;
             printf("Введите ID предмета для быстрого доступа: ");
             if (scanf("%d", &target_id) != 1 || target_id <= 0) {
+                const char* itemName = getItemName(target_id);
                 while (getchar() != '\n');
                 printf("Ошибка: неверный ID.\n\n");
                 break;
             }
+
+            const char* itemName = getItemName(target_id);
+
 
             int found_index = -1;
             for (int i = 0; i < inventory_size; i++) {
@@ -154,7 +158,7 @@ int main() {
             }
 
             if (found_index == -1) {
-                printf("Предмет с ID %d не найден в инвентаре.\n\n", target_id);
+                printf("Предмет '%s' (ID: %d) не найден в инвентаре.\n\n", itemName, target_id);
             }
             else {
                 // меняем местами с нулевым слотом
