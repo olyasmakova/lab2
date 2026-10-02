@@ -135,9 +135,37 @@ int main() {
             }
             break;
         }
-        case 6:
-            printf("П6 бебебе\n\n");
+        case 6: {
+            // В8: быстрый доступ (найти предмет и переместить в слот 0)
+            int target_id;
+            printf("Введите ID предмета для быстрого доступа: ");
+            if (scanf("%d", &target_id) != 1 || target_id <= 0) {
+                while (getchar() != '\n');
+                printf("Ошибка: неверный ID.\n\n");
+                break;
+            }
+
+            int found_index = -1;
+            for (int i = 0; i < inventory_size; i++) {
+                if (inventory[i] == target_id) {
+                    found_index = i;
+                    break; // нашли первое совпадение и хватит
+                }
+            }
+
+            if (found_index == -1) {
+                printf("Предмет с ID %d не найден в инвентаре.\n\n", target_id);
+            }
+            else {
+                // меняем местами с нулевым слотом
+                int temp = inventory[0];
+                inventory[0] = inventory[found_index];
+                inventory[found_index] = temp;
+                printf("Предмет ID %d перемещён в слот 0.\n", target_id);
+                printInventory(inventory);
+            }
             break;
+        }
         default:
             printf("Неверный выбор. Попробуйте еще раз.\n\n");
             break;
