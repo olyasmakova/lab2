@@ -12,6 +12,10 @@ const char* getItemName(int id) {
     case 3: return "вода";
     case 4: return "удобрения";
     case 5: return "корзинка";
+    case 6: return "морковь";
+    case 7: return "лопата";
+    case 8: return "картошка";
+    case 9: return "лампочка";
     default: return "тут пусто";
     }
 }
