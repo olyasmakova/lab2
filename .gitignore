@@ -1,12 +1,9 @@
-# Скомпелированные исполняемые файлы
 *.exe
 *.out
 
-# Объектные Файлы
 *.o
 *.obj
 
-# От Visual Studio
 .vs/
 *.suo
 *.user
@@ -14,6 +11,5 @@
 *.vcxproj.filters
 *.vcxproj.user
 
-# Генерируемые файлы
 output.txt
 diary.txt
