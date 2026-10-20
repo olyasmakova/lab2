@@ -2,8 +2,11 @@
 
 #include <stdio.h>
 #include <windows.h>
+#include <string.h>
 
-#define inventory_size 10
+#define MAX_ITEMS 10
+#define MAX_NAME_LEN 64
+#define MAX_FARMER_NAME 32
 
 const char* getItemName(int id) {
     switch (id) {
@@ -22,7 +25,7 @@ const char* getItemName(int id) {
 
 void printInventory(const int inventory[]) {
     printf("\n--- ИНВЕНТАРЬ ФЕРМЕРА ---\n");
-    for (int i = 0; i < inventory_size; i++) {
+    for (int i = 0; i < MAX_ITEMS; i++) {
         const char* name = getItemName(inventory[i]);
 
         if (inventory[i] == 0) {
@@ -42,7 +45,7 @@ int main() {
     int current_day = 1;
     int current_hour = 8;
 
-    int inventory[inventory_size] = { 1, 0, 2, 3, 0, 4, 5, 0, 1, 2 };
+    int inventory[MAX_ITEMS] = { 1, 0, 2, 3, 0, 4, 5, 0, 1, 2 };
     int choice;
 
     while (1) {
@@ -58,10 +61,11 @@ int main() {
 
         // защита от дурака
         if (scanf("%d", &choice) != 1) {
-            while (getchar() != '\n');
+            while (getchar() != '\n'); // очищаемм мусор
             printf("Ошибка. Введите число от 0 до 6.\n\n");
             continue;
         }
+        while (getchar() != '\n'); // очищаем все что было после числа
 
         switch (choice) {
         case 0:
@@ -82,6 +86,7 @@ int main() {
                 printf("Ошибка: введите неотрицательное число.\n\n");
                 break;
             }
+            while (getchar() != '\n'); // очистка
 
             current_hour += add_hours;
             while (current_hour >= 24) {
@@ -99,12 +104,13 @@ int main() {
         case 4: {
             // П4: положить предмет
             int slot_index, item_id;
-            printf("В какой слот (0-%d) положить предмет? ", inventory_size - 1);
-            if (scanf("%d", &slot_index) != 1 || slot_index < 0 || slot_index >= inventory_size) {
+            printf("В какой слот (0-%d) положить предмет? ", MAX_ITEMS - 1);
+            if (scanf("%d", &slot_index) != 1 || slot_index < 0 || slot_index >= MAX_ITEMS) {
                 while (getchar() != '\n');
                 printf("Ошибка: неверный номер слота.\n\n");
                 break;
             }
+            while (getchar() != '\n'); // очистка
 
             printf("Какой ID предмета положить? ");
             if (scanf("%d", &item_id) != 1 || item_id <= 0) {
@@ -112,6 +118,7 @@ int main() {
                 printf("Ошибка: ID должен быть положительным числом.\n\n");
                 break;
             }
+            while (getchar() != '\n'); // очистка
 
             inventory[slot_index] = item_id;
             const char* itemName = getItemName(item_id);
@@ -124,13 +131,14 @@ int main() {
             int slot_index;
             const char* itemName = NULL;
 
-            printf("Из какого слота (0-%d) выбросить предмет? ", inventory_size - 1);
+            printf("Из какого слота (0-%d) выбросить предмет? ", MAX_ITEMS - 1);
 
-            if (scanf("%d", &slot_index) != 1 || slot_index < 0 || slot_index >= inventory_size) {
+            if (scanf("%d", &slot_index) != 1 || slot_index < 0 || slot_index >= MAX_ITEMS) {
                 while (getchar() != '\n');
                 printf("Ошибка: неверный номер слота.\n\n");
                 break;
             }
+            while (getchar() != '\n'); // очистка
 
             if (inventory[slot_index] == 0) {
                 printf("В этом слоте и так пусто.\n\n");
@@ -154,9 +162,10 @@ int main() {
                 printf("Ошибка: неверный ID.\n\n");
                 break;
             }
+            while (getchar() != '\n'); // очистка
 
             int found_index = -1;
-            for (int i = 0; i < inventory_size; i++) {
+            for (int i = 0; i < MAX_ITEMS; i++) {
                 if (inventory[i] == target_id) {
                     found_index = i;
                     break;
