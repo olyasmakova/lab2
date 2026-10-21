@@ -8,31 +8,51 @@
 #define MAX_NAME_LEN 64
 #define MAX_FARMER_NAME 32
 
-const char* getItemName(int id) {
-    switch (id) {
-    case 1: return "мотыга";
-    case 2: return "семена пшеницы";
-    case 3: return "вода";
-    case 4: return "удобрения";
-    case 5: return "корзинка";
-    case 6: return "морковь";
-    case 7: return "лопата";
-    case 8: return "картошка";
-    case 9: return "лампочка";
-    default: return "тут пусто";
+void loadItemNames(char names[][MAX_NAME_LEN]) {
+    static const char* defaults[] = {
+        "Пусто", "Мотыга", "Семена пшеницы", "Вода", "Удобрения",
+        "Корзинка", "Морковь", "Лопата", "Картошка", "Лампочка"
+    };
+
+    FILE* file = fopen("items.txt", "r");
+    if (file == NULL) {
+        for (int i = 0; i < MAX_ITEMS; i++) {
+            strncpy(names[i], defaults[i], MAX_NAME_LEN - 1);
+            names[i][MAX_NAME_LEN - 1] = '\0';
+        }
+        printf("!Предупреждение! файл items.txt не найден. Использованы стандартные названия.\n");
+        return;
     }
-}
 
-void printInventory(const int inventory[]) {
-    printf("\n--- ИНВЕНТАРЬ ФЕРМЕРА ---\n");
     for (int i = 0; i < MAX_ITEMS; i++) {
-        const char* name = getItemName(inventory[i]);
-
-        if (inventory[i] == 0) {
-            printf("Слот %d: [тут пусто]\n", i);
+        char buffer[MAX_NAME_LEN];
+        if (fgets(buffer, sizeof(buffer), file) != NULL) {
+            size_t len = strlen(buffer);
+            if (len > 0 && buffer[len - 1] == '\n') {
+                buffer[len - 1] = '\0';
+            }
+            strncpy(names[i], buffer, MAX_NAME_LEN - 1);
+            names[i][MAX_NAME_LEN - 1] = '\0';
         }
         else {
-            printf("Слот %d: [%s] (ID: %d)\n", i, name, inventory[i]);
+            strncpy(names[i], defaults[i], MAX_NAME_LEN - 1);
+            names[i][MAX_NAME_LEN - 1] = '\0';
+        }
+    }
+    fclose(file);
+}
+
+void printInventory(const int inventory[], const char names[][MAX_NAME_LEN]) {
+    printf("\n--- ИНВЕНТАРЬ ФЕРМЕРА ---\n");
+    for (int i = 0; i < MAX_ITEMS; i++) {
+        int id = inventory[i];
+        const char* name = names[id];
+
+        if (id == 0) {
+            printf("Слот %d: [%s]\n", i, name);
+        }
+        else {
+            printf("Слот %d: [%s] (ID: %d)\n", i, name, id);
         }
     }
     printf("--------------------------\n\n");
@@ -54,6 +74,8 @@ int main() {
         strcpy(farmer_name, "Фермер");
     }
 
+    char item_names[MAX_ITEMS][MAX_NAME_LEN];
+    loadItemNames(item_names);
 
     int current_day = 1;
     int current_hour = 8;
@@ -72,13 +94,12 @@ int main() {
         printf("[6] Быстрый доступ (В8)\n");
         printf("Выберите действие: ");
 
-        // защита от дурака
         if (scanf("%d", &choice) != 1) {
-            while (getchar() != '\n'); // очищаемм мусор
+            int c;
+            while ((c = getchar()) != '\n' && c != EOF);
             printf("Ошибка. Введите число от 0 до 6.\n\n");
             continue;
         }
-        while (getchar() != '\n'); // очищаем все что было после числа
 
         switch (choice) {
         case 0:
@@ -94,13 +115,19 @@ int main() {
             // П2: промотать время
             int add_hours;
             printf("Сколько часов хотите промотать? ");
-            if (scanf("%d", &add_hours) != 1 || add_hours < 0) {
-                while (getchar() != '\n');
-                printf("Ошибка: введите неотрицательное число.\n\n");
+
+            if (scanf("%d", &add_hours) != 1) {
+                int c;
+                while ((c = getchar()) != '\n' && c != EOF);
+                printf("Ошибка: введите корректное число часов.\n\n");
                 break;
             }
-            while (getchar() != '\n'); // очистка
 
+            if (add_hours < 0) {
+                printf("Ошибка: количество часов не может быть отрицательным.\n\n");
+                break;
+            }
+    
             current_hour += add_hours;
             while (current_hour >= 24) {
                 current_hour -= 24;
@@ -111,71 +138,86 @@ int main() {
         }
 
         case 3:
-            printInventory(inventory);
+            printInventory(inventory, item_names);
             break;
 
         case 4: {
             // П4: положить предмет
             int slot_index, item_id;
+
             printf("В какой слот (0-%d) положить предмет? ", MAX_ITEMS - 1);
-            if (scanf("%d", &slot_index) != 1 || slot_index < 0 || slot_index >= MAX_ITEMS) {
-                while (getchar() != '\n');
-                printf("Ошибка: неверный номер слота.\n\n");
+            if (scanf("%d", &slot_index) != 1) {
+                int c;
+                while ((c = getchar()) != '\n' && c != EOF);
+                printf("Ошибка: введите корректный номер слота.\n\n");
                 break;
             }
-            while (getchar() != '\n'); // очистка
+            if (slot_index < 0 || slot_index >= MAX_ITEMS) {
+                printf("Ошибка: номер слота должен быть от 0 до %d.\n\n", MAX_ITEMS - 1);
+                break;
+            }
 
             printf("Какой ID предмета положить? ");
-            if (scanf("%d", &item_id) != 1 || item_id <= 0) {
-                while (getchar() != '\n');
-                printf("Ошибка: ID должен быть положительным числом.\n\n");
+            if (scanf("%d", &item_id) != 1) {
+                int c;
+                while ((c = getchar()) != '\n' && c != EOF);
+                printf("Ошибка: ID должен быть числом.\n\n");
                 break;
             }
-            while (getchar() != '\n'); // очистка
+            if (item_id <= 0 || item_id >= MAX_ITEMS) {
+                printf("Ошибка: ID должен быть от 1 до %d.\n\n", MAX_ITEMS - 1);
+                break;
+            }
 
             inventory[slot_index] = item_id;
-            const char* itemName = getItemName(item_id);
-            printf("Предмет '%s' (ID: %d) положен в слот %d.\n\n", itemName, item_id, slot_index);
+            printf("Предмет '%s' (ID: %d) положен в слот %d.\n\n", item_names[item_id], item_id, slot_index);
             break;
         }
+
 
         case 5: {
             // П5: выбросить предмет
             int slot_index;
-            const char* itemName = NULL;
 
             printf("Из какого слота (0-%d) выбросить предмет? ", MAX_ITEMS - 1);
-
-            if (scanf("%d", &slot_index) != 1 || slot_index < 0 || slot_index >= MAX_ITEMS) {
-                while (getchar() != '\n');
-                printf("Ошибка: неверный номер слота.\n\n");
+            if (scanf("%d", &slot_index) != 1) {
+                int c;
+                while ((c = getchar()) != '\n' && c != EOF);
+                printf("Ошибка: введите корректный номер слота.\n\n");
                 break;
             }
-            while (getchar() != '\n'); // очистка
+            if (slot_index < 0 || slot_index >= MAX_ITEMS) {
+                printf("Ошибка: номер слота должен быть от 0 до %d.\n\n", MAX_ITEMS - 1);
+                break;
+            }
 
             if (inventory[slot_index] == 0) {
                 printf("В этом слоте и так пусто.\n\n");
             }
             else {
-                itemName = getItemName(inventory[slot_index]);
+                const char* itemName = item_names[inventory[slot_index]];
                 inventory[slot_index] = 0;
-
                 printf("Предмет '%s' из слота %d выброшен.\n\n", itemName, slot_index);
             }
             break;
         }
 
+
         case 6: {
             // В8: быстрый доступ — найти предмет и переместить в слот 0
             int target_id;
-            printf("Введите ID предмета для быстрого доступа: ");
 
-            if (scanf("%d", &target_id) != 1 || target_id <= 0) {
-                while (getchar() != '\n');
-                printf("Ошибка: неверный ID.\n\n");
+            printf("Введите ID предмета для быстрого доступа: ");
+            if (scanf("%d", &target_id) != 1) {
+                int c;
+                while ((c = getchar()) != '\n' && c != EOF);
+                printf("Ошибка: ID должен быть числом.\n\n");
                 break;
             }
-            while (getchar() != '\n'); // очистка
+            if (target_id <= 0 || target_id >= MAX_ITEMS) {
+                printf("Ошибка: ID должен быть от 1 до %d.\n\n", MAX_ITEMS - 1);
+                break;
+            }
 
             int found_index = -1;
             for (int i = 0; i < MAX_ITEMS; i++) {
@@ -186,21 +228,22 @@ int main() {
             }
 
             if (found_index == -1) {
-                const char* missingName = getItemName(target_id);
+                const char* missingName = item_names[target_id];
                 printf("Предмет '%s' не найден в инвентаре.\n\n", missingName);
             }
             else {
-                const char* itemName = getItemName(inventory[found_index]);
+                const char* itemName = item_names[inventory[found_index]];
 
                 int temp = inventory[0];
                 inventory[0] = inventory[found_index];
                 inventory[found_index] = temp;
 
                 printf("Предмет «%s» перемещён в слот 0.\n", itemName);
-                printInventory(inventory);
+                printInventory(inventory, item_names);
             }
             break;
         }
+
 
         default:
             printf("Неверный выбор. Попробуйте еще раз.\n\n");
