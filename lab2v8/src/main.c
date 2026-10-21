@@ -42,6 +42,19 @@ int main() {
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
 
+    char farmer_name[MAX_FARMER_NAME];
+    printf("Введите имя вашего фермера: ");
+    if (fgets(farmer_name, sizeof(farmer_name), stdin) != NULL) {
+        size_t len = strlen(farmer_name);
+        if (len > 0 && farmer_name[len - 1] == '\n') {
+            farmer_name[len - 1] = '\0';
+        }
+    }
+    if (strlen(farmer_name) == 0) {
+        strcpy(farmer_name, "Фермер");
+    }
+
+
     int current_day = 1;
     int current_hour = 8;
 
@@ -49,7 +62,7 @@ int main() {
     int choice;
 
     while (1) {
-        printf("=== МЕНЮ ФЕРМЕРА ===\n");
+        printf("=== МЕНЮ ФЕРМЕРА (%s) ===\n", farmer_name);
         printf("[0] Выход\n");
         printf("[1] Посмотреть на часы\n");
         printf("[2] Промотать время (Поработать)\n");
