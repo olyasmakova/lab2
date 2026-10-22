@@ -58,6 +58,43 @@ void printInventory(const int inventory[], const char names[][MAX_NAME_LEN]) {
     printf("--------------------------\n\n");
 }
 
+void searchItemByName(const int inventory[], const char names[][MAX_NAME_LEN]) {
+    char searchName[MAX_NAME_LEN];
+
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+
+    printf("Введите название предмета для поиска (например Мотыга): ");
+
+    // тут строка читается
+    if (fgets(searchName, sizeof(searchName), stdin) == NULL) {
+        printf("Ошибка ввода.\n\n");
+        return;
+    }
+
+    // убираем \n если он есть 
+    size_t len = strlen(searchName);
+    if (len > 0 && searchName[len - 1] == '\n') {
+        searchName[len - 1] = '\0';
+    }
+
+    int found = 0; // нашли хоть один предмет или нет
+
+    for (int i = 0; i < MAX_ITEMS; i++) {
+        // сравниваем название предмета в слоте с тем что ввели
+        if (strcmp(names[inventory[i]], searchName) == 0) {
+            printf("Найден! слот %d — '%s' (ID: %d)\n", i, names[inventory[i]], inventory[i]);
+            found = 1;
+        }
+    }
+
+    if (!found) {
+        printf("Предмет с названием '%s' не найден в инвентаре.\n", searchName);
+    }
+    printf("\n");
+}
+
+
 int main() {
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
@@ -92,6 +129,7 @@ int main() {
         printf("[4] Положить предмет в слот\n");
         printf("[5] Выбросить предмет\n");
         printf("[6] Быстрый доступ (В8)\n");
+        printf("[7] Поиск предмета по названию\n");
         printf("Выберите действие: ");
 
         if (scanf("%d", &choice) != 1) {
@@ -243,6 +281,10 @@ int main() {
             }
             break;
         }
+
+        case 7: //а тут обработка вывода
+            searchItemByName(inventory, item_names);
+            break;
 
 
         default:
