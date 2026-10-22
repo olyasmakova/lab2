@@ -95,33 +95,50 @@ void searchItemByName(const int inventory[], const char names[][MAX_NAME_LEN]) {
 }
 
 void writeDiary(const char* farmerName, int day, int hour, const int inventory[], const char names[][MAX_NAME_LEN]) {
-    FILE* diary = fopen("diary.txt", "a"); // дописать в конец, не стирать старое
+    FILE* diary = fopen("diary.txt", "a");
     if (diary == NULL) {
-        printf("[Ошибка] Не удалось открыть diary.txt для записи.\n\n");
+        printf("!Ошибка! Не удалось открыть diary.txt для записи.\n\n");
         return;
     }
 
+    // тут вывод на экран для игрока
+    printf("\n=== ЗАПИСЬ В ДНЕВНИКЕ ===\n");
+    printf("Фермер: %s\n", farmerName);
+    printf("Дата: День %d, Час %d\n", day, hour);
+    printf("Содержимое инвентаря:\n");
+
+    int hasItems = 0;
+    for (int i = 0; i < MAX_ITEMS; i++) {
+        if (inventory[i] != 0) {
+            printf("  Слот %d: %s (ID: %d)\n", i, names[inventory[i]], inventory[i]);
+            hasItems = 1;
+        }
+    }
+    if (!hasItems) {
+        printf("  Инвентарь пуст.\n");
+    }
+    printf("====================================\n\n");
+
+    // а тут то же самое в файлик
     fprintf(diary, "=== ЗАПИСЬ В ДНЕВНИКЕ ===\n");
     fprintf(diary, "Фермер: %s\n", farmerName);
     fprintf(diary, "Дата: День %d, Час %d\n", day, hour);
     fprintf(diary, "Содержимое инвентаря:\n");
 
-    int hasItems = 0; // чтобы понять, есть ли вообще что-то кроме пустышек
+    hasItems = 0;
     for (int i = 0; i < MAX_ITEMS; i++) {
         if (inventory[i] != 0) {
             fprintf(diary, "  Слот %d: %s (ID: %d)\n", i, names[inventory[i]], inventory[i]);
             hasItems = 1;
         }
     }
-
     if (!hasItems) {
         fprintf(diary, "  Инвентарь пуст.\n");
     }
-
     fprintf(diary, "=========================\n\n");
 
     fclose(diary);
-    printf("Запись успешно сохранена в diary.txt\n\n");
+    printf("Запись сохранена в diary.txt\n\n");
 }
 
 
@@ -166,7 +183,7 @@ int main() {
         if (scanf("%d", &choice) != 1) {
             int c;
             while ((c = getchar()) != '\n' && c != EOF);
-            printf("Ошибка. Введите число от 0 до 6.\n\n");
+            printf("Ошибка. Введите число от 0 до 8.\n\n");
             continue;
         }
 
