@@ -94,6 +94,36 @@ void searchItemByName(const int inventory[], const char names[][MAX_NAME_LEN]) {
     printf("\n");
 }
 
+void writeDiary(const char* farmerName, int day, int hour, const int inventory[], const char names[][MAX_NAME_LEN]) {
+    FILE* diary = fopen("diary.txt", "a"); // дописать в конец, не стирать старое
+    if (diary == NULL) {
+        printf("[Ошибка] Не удалось открыть diary.txt для записи.\n\n");
+        return;
+    }
+
+    fprintf(diary, "=== ЗАПИСЬ В ДНЕВНИКЕ ===\n");
+    fprintf(diary, "Фермер: %s\n", farmerName);
+    fprintf(diary, "Дата: День %d, Час %d\n", day, hour);
+    fprintf(diary, "Содержимое инвентаря:\n");
+
+    int hasItems = 0; // чтобы понять, есть ли вообще что-то кроме пустышек
+    for (int i = 0; i < MAX_ITEMS; i++) {
+        if (inventory[i] != 0) {
+            fprintf(diary, "  Слот %d: %s (ID: %d)\n", i, names[inventory[i]], inventory[i]);
+            hasItems = 1;
+        }
+    }
+
+    if (!hasItems) {
+        fprintf(diary, "  Инвентарь пуст.\n");
+    }
+
+    fprintf(diary, "=========================\n\n");
+
+    fclose(diary);
+    printf("Запись успешно сохранена в diary.txt\n\n");
+}
+
 
 int main() {
     SetConsoleOutputCP(CP_UTF8);
@@ -130,6 +160,7 @@ int main() {
         printf("[5] Выбросить предмет\n");
         printf("[6] Быстрый доступ (В8)\n");
         printf("[7] Поиск предмета по названию\n");
+        printf("[8] Сделать запись в дневник (diary.txt)\n");
         printf("Выберите действие: ");
 
         if (scanf("%d", &choice) != 1) {
@@ -165,7 +196,7 @@ int main() {
                 printf("Ошибка: количество часов не может быть отрицательным.\n\n");
                 break;
             }
-    
+
             current_hour += add_hours;
             while (current_hour >= 24) {
                 current_hour -= 24;
@@ -286,6 +317,9 @@ int main() {
             searchItemByName(inventory, item_names);
             break;
 
+        case 8:
+            writeDiary(farmer_name, current_day, current_hour, inventory, item_names);
+            break;
 
         default:
             printf("Неверный выбор. Попробуйте еще раз.\n\n");
