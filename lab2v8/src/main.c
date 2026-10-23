@@ -141,6 +141,76 @@ void writeDiary(const char* farmerName, int day, int hour, const int inventory[]
     printf("Запись сохранена в diary.txt\n\n");
 }
 
+void analyzeLogs(const char* inputFile, const char* outputFile) {
+    FILE* in = fopen(inputFile, "r");
+    if (in == NULL) {
+        printf("!Ошибка! Не удалось открыть %s для чтения. Создайте файл в папке запуска.\n\n", inputFile);
+        return;
+    }
+
+    FILE* out = fopen(outputFile, "w");
+    if (out == NULL) {
+        printf("!Ошибка! Не удалось создать %s для записи.\n\n", outputFile);
+        fclose(in);
+        return;
+    }
+
+    char buffer[512];
+    int lineNum = 0;
+    int countInfo = 0, countWarn = 0, countError = 0;
+
+    while (fgets(buffer, sizeof(buffer), in) != NULL) {
+        lineNum++;
+
+        // Ищем теги
+        if (strstr(buffer, "[INFO]") != NULL) {
+            countInfo++;
+        }
+        if (strstr(buffer, "[WARN]") != NULL) {
+            countWarn++;
+        }
+        if (strstr(buffer, "[ERROR]") != NULL) {
+            countError++;
+        }
+
+        // если warn или error пишем в output без тега и с номером строки
+        if (strstr(buffer, "[WARN]") != NULL || strstr(buffer, "[ERROR]") != NULL) {
+            // находим начало текста после тега
+            const char* start = NULL;
+            if (strstr(buffer, "[WARN]") != NULL) {
+                start = strstr(buffer, "[WARN]");
+                if (start != NULL) start += 6; // пропускаем warn (6 символов)
+            }
+            else if (strstr(buffer, "[ERROR]") != NULL) {
+                start = strstr(buffer, "[ERROR]");
+                if (start != NULL) start += 7; // пропускаем error (7 символов)
+            }
+
+            // eсли нашли пропускаем возможные пробелы после тега
+            if (start != NULL) {
+                while (*start == ' ') start++;
+            }
+            else {
+                // если тег есть но логика не сработала пишем как есть
+                start = buffer;
+            }
+
+            fprintf(out, "%d: %s", lineNum, start);
+        }
+    }
+
+    fclose(in);
+    fclose(out);
+
+    // dывод статистики на экран
+    printf("\n=== АНАЛИЗ ЛОГОВ (%s) ===\n", inputFile);
+    printf("Всего строк: %d\n", lineNum);
+    printf("[INFO]: %d\n", countInfo);
+    printf("[WARN]: %d\n", countWarn);
+    printf("[ERROR]: %d\n", countError);
+    printf("===========================\n\n");
+}
+
 
 int main() {
     SetConsoleOutputCP(CP_UTF8);
@@ -178,12 +248,13 @@ int main() {
         printf("[6] Быстрый доступ (В8)\n");
         printf("[7] Поиск предмета по названию\n");
         printf("[8] Сделать запись в дневник (diary.txt)\n");
+        printf("[9] Анализатор логов (input.txt → output.txt)\n");
         printf("Выберите действие: ");
 
         if (scanf("%d", &choice) != 1) {
             int c;
             while ((c = getchar()) != '\n' && c != EOF);
-            printf("Ошибка. Введите число от 0 до 8.\n\n");
+            printf("Ошибка. Введите число от 0 до 9.\n\n");
             continue;
         }
 
@@ -336,6 +407,10 @@ int main() {
 
         case 8:
             writeDiary(farmer_name, current_day, current_hour, inventory, item_names);
+            break;
+
+        case 9:
+            analyzeLogs("input.txt", "output.txt");
             break;
 
         default:
