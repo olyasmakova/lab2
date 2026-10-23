@@ -11,5 +11,6 @@
 *.vcxproj.filters
 *.vcxproj.user
 
+input.txt 
 output.txt
 diary.txt
