@@ -3,10 +3,26 @@
 #include <stdio.h>
 #include <windows.h>
 #include <string.h>
+#include <time.h>
 
 #define MAX_ITEMS 10
 #define MAX_NAME_LEN 64
 #define MAX_FARMER_NAME 32
+
+// константы приключения
+#define MAP_MIN_SIZE    5    // минимальный размер карты
+#define MAP_MAX_SIZE    30   // максимальный размер карты
+#define OBSTACLE_CHANCE 20   // шанс препятствия в процентах (по заданию 15-30)
+
+// символы на карте
+#define CHAR_WALL   '#'      // стена (для пещеры)
+#define CHAR_EMPTY  '.'      // свободная клетка
+#define CHAR_TREE   'T'      // дерево (препятствие)
+#define CHAR_ROCK   'R'      // камень (препятствие)
+#define CHAR_HERO   '@'      // герой
+#define CHAR_CAVE   'O'      // вход в пещеру
+#define CHAR_CAMPFIRE '^'    // костёр: выход домой только отсюда
+
 
 void loadItemNames(char names[][MAX_NAME_LEN]) {
     static const char* defaults[] = {
@@ -216,6 +232,8 @@ int main() {
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
 
+    srand((unsigned)time(NULL)); // доделать!!!
+
     char farmer_name[MAX_FARMER_NAME];
     printf("Введите имя вашего фермера: ");
     if (fgets(farmer_name, sizeof(farmer_name), stdin) != NULL) {
@@ -249,12 +267,13 @@ int main() {
         printf("[7] Поиск предмета по названию\n");
         printf("[8] Сделать запись в дневник (diary.txt)\n");
         printf("[9] Анализатор логов (input.txt → output.txt)\n");
+        printf("[10] Отправиться в приключение\n");
         printf("Выберите действие: ");
 
         if (scanf("%d", &choice) != 1) {
             int c;
             while ((c = getchar()) != '\n' && c != EOF);
-            printf("Ошибка. Введите число от 0 до 9.\n\n");
+            printf("Ошибка. Введите число от 0 до 10.\n\n");
             continue;
         }
 
