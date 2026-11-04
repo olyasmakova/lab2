@@ -268,6 +268,74 @@ void freeMap(char** map, int height) {
     free(map);
 }
 
+void printMap(char** map, int width, int height) {
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            putchar(map[y][x]);
+        }
+        putchar('\n');
+    }
+}
+
+char** generateForest(int* outWidth, int* outHeight, int* outHeroX, int* outHeroY) {
+    // 1 случайный размер от MIN до MAX включительно
+    int w = MAP_MIN_SIZE + rand() % (MAP_MAX_SIZE - MAP_MIN_SIZE + 1);
+    int h = MAP_MIN_SIZE + rand() % (MAP_MAX_SIZE - MAP_MIN_SIZE + 1);
+
+    char** map = createMap(w, h);
+    if (map == NULL) return NULL;
+
+    // 2 заполняем препятствиями
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            if (rand() % 100 < OBSTACLE_CHANCE) {
+                map[y][x] = (rand() % 2 == 0) ? CHAR_TREE : CHAR_ROCK;
+            }
+            else {
+                map[y][x] = CHAR_EMPTY;
+            }
+        }
+    }
+
+    // 3 ставим костёр
+    int fireX, fireY;
+    do {
+        fireX = rand() % w;
+        fireY = rand() % h;
+    } while (map[fireY][fireX] != CHAR_EMPTY);
+    map[fireY][fireX] = CHAR_CAMPFIRE;
+
+    // 4 Ставим героя (на свободную клетку не на костёр)
+    do {
+        *outHeroX = rand() % w;
+        *outHeroY = rand() % h;
+    } while (map[*outHeroY][*outHeroX] != CHAR_EMPTY);
+    map[*outHeroY][*outHeroX] = CHAR_HERO;
+
+    *outWidth = w;
+    *outHeight = h;
+    return map;
+}
+
+void startAdventure(void) {
+    int w, h, heroX, heroY;
+
+    char** map = generateForest(&w, &h, &heroX, &heroY);
+
+    if (map == NULL) {
+        printf("!Ошибка! Не удалось выделить память под карту.\n\n");
+        return;
+    }
+
+    printf("\n=== ВЫ В ЛЕСУ ===\n");
+    printMap(map, w, h);
+    printf("Легенда: . = пусто, T = дерево, R = камень, @ = ты, ^ = выход домой\n\n");
+
+    //освобождаем память сразу после показа!
+    freeMap(map, h);
+    map = NULL; // зануляю указатель после free
+}
+
 
 int main() {
     SetConsoleOutputCP(CP_UTF8);
@@ -471,6 +539,10 @@ int main() {
 
         case 9:
             analyzeLogs("input.txt", "output.txt");
+            break;
+
+        case 10:
+            startAdventure();
             break;
 
         default:
