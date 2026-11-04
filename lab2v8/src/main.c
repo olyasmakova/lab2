@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <string.h>
 #include <time.h>
+#include <stdlib.h>
 
 #define MAX_ITEMS 10
 #define MAX_NAME_LEN 64
@@ -227,12 +228,52 @@ void analyzeLogs(const char* inputFile, const char* outputFile) {
     printf("===========================\n\n");
 }
 
+// карта приключения
+
+// выделяет динамическую карту(массив указателей на строки)
+// сначала malloc под массив указателей (height штук)
+// потом в цикле malloc под каждую строку (width символов)
+// Возвращает NULL если память не выделилась
+char** createMap(int width, int height) {
+    char** map = (char**)malloc(height * sizeof(char*));
+    if (map == NULL) {
+        return NULL; // не хватило памяти под массив указателей
+    }
+
+    for (int i = 0; i < height; i++) {
+        map[i] = (char*)malloc(width * sizeof(char));
+        if (map[i] == NULL) {
+            // память кончилась на середине тоогда освобождаем всё что успели выделить
+            for (int j = 0; j < i; j++) {
+                free(map[j]);
+            }
+            free(map);
+            return NULL;
+        }
+    }
+    return map;
+}
+
+// освобождает память карты (сначала все строки, потом массив указателей)
+// защищена от вызова с NULL (повторное освобождение не сломает программу)
+void freeMap(char** map, int height) {
+
+
+    if (map == NULL) {
+        return;
+    }
+    for (int i = 0; i < height; i++) {
+        free(map[i]);
+    }
+    free(map);
+}
+
 
 int main() {
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
 
-    srand((unsigned)time(NULL)); // доделать!!!
+    srand((unsigned)time(NULL)); 
 
     char farmer_name[MAX_FARMER_NAME];
     printf("Введите имя вашего фермера: ");
