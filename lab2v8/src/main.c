@@ -308,6 +308,7 @@ int moveHero(int dx, int dy) {
     // сквозь деревья и камни ходить нельзя
     char target = currentMap[newY][newX];
     if (target == CHAR_TREE || target == CHAR_ROCK) {
+        printf("Там дерево или камень!\n");  
         return 0;
     }
 
@@ -361,22 +362,79 @@ char** generateForest(int* outWidth, int* outHeight, int* outHeroX, int* outHero
 }
 
 void startAdventure(void) {
-    int w, h, heroX, heroY;
+    int w, h, startX, startY;
 
-    char** map = generateForest(&w, &h, &heroX, &heroY);
-
+    // Генерируем карту
+    char** map = generateForest(&w, &h, &startX, &startY);
     if (map == NULL) {
         printf("!Ошибка! Не удалось выделить память под карту.\n\n");
         return;
     }
 
+    // Инициализируем состояние
+    currentMap = map;
+    mapWidth = w;
+    mapHeight = h;
+    heroX = startX;
+    heroY = startY;
+    mapsTravelled = 1;          // мы на первой карте
+    adventureActive = 1;         // включаем режим приключения
+
     printf("\n=== ВЫ В ЛЕСУ ===\n");
-    printMap(map, w, h);
     printf("Легенда: . = пусто, T = дерево, R = камень, @ = ты, ^ = выход домой\n\n");
 
-    //освобождаем память сразу после показа!
-    freeMap(map, h);
-    map = NULL; // зануляю указатель после free
+    // игровой цикл
+    while (adventureActive) {
+        // рисуем карту
+        printMap(currentMap, mapWidth, mapHeight);
+
+        printf("\n[WASD] — ходить, [Q] — выйти домой (только у костра)\n");
+        printf("> ");
+
+        int c = getchar();
+
+        // пропускаем лишние переносы строки
+        if (c == '\n') continue;
+
+        // приводим к нижнему регистру есл нажали Shift+W
+        if (c >= 'A' && c <= 'Z') {
+            c = c + ('a' - 'A');
+        }
+
+        switch (c) {
+        case 'w':
+            moveHero(0, -1);
+            break;
+        case 's':
+            moveHero(0, 1);
+            break;
+        case 'a':
+            moveHero(-1, 0);
+            break;
+        case 'd':
+            moveHero(1, 0);
+            break;
+        case 'q':
+            // выход домой только если стоишь на костре
+            if (currentMap[heroY][heroX] == CHAR_CAMPFIRE) {
+                adventureActive = 0; // выходим из цикла
+                printf("\nВы вернулись домой у костра! Пройдено карт: %d\n\n", mapsTravelled);
+            }
+            else {
+                printf("Нельзя выйти отсюда! Найдите костёр (^).\n");
+            }
+            break;
+        default:
+            printf("Неизвестная команда. Используйте WASD или Q.\n");
+            break;
+        }
+    }
+
+    // освобождаем память и сбрасываем состояние
+    freeMap(currentMap, mapHeight);
+    currentMap = NULL;
+    adventureActive = 0;
+    // heroX/Y можно не обнулять впринципе
 }
 
 
@@ -584,9 +642,13 @@ int main() {
             analyzeLogs("input.txt", "output.txt");
             break;
 
-        case 10:
+        case 10: {
+            // очистка буфера после scanf
+            int c;
+            while ((c = getchar()) != '\n' && c != EOF);
             startAdventure();
             break;
+        }
 
         default:
             printf("Неверный выбор. Попробуйте еще раз.\n\n");
