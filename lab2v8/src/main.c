@@ -42,6 +42,7 @@ int adventureActive = 0;
 int mapsTravelled = 0;
 
 int moveToNextMap(int dx, int dy);
+void clearInputBuffer(void);
 
 void loadItemNames(char names[][MAX_NAME_LEN]) {
     static const char* defaults[] = {
@@ -96,8 +97,7 @@ void printInventory(const int inventory[], const char names[][MAX_NAME_LEN]) {
 void searchItemByName(const int inventory[], const char names[][MAX_NAME_LEN]) {
     char searchName[MAX_NAME_LEN];
 
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF);
+    clearInputBuffer();
 
     printf("Введите название предмета для поиска (например Мотыга): ");
 
@@ -244,6 +244,12 @@ void analyzeLogs(const char* inputFile, const char* outputFile) {
     printf("[WARN]: %d\n", countWarn);
     printf("[ERROR]: %d\n", countError);
     printf("===========================\n\n");
+}
+
+// имбуля чистит буфер после неудачного scanf
+void clearInputBuffer(void) {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
 }
 
 // карта приключения
@@ -545,8 +551,7 @@ int main() {
         printf("Выберите действие: ");
 
         if (scanf("%d", &choice) != 1) {
-            int c;
-            while ((c = getchar()) != '\n' && c != EOF);
+            clearInputBuffer();
             printf("Ошибка. Введите число от 0 до 10.\n\n");
             continue;
         }
@@ -567,8 +572,7 @@ int main() {
             printf("Сколько часов хотите промотать? ");
 
             if (scanf("%d", &add_hours) != 1) {
-                int c;
-                while ((c = getchar()) != '\n' && c != EOF);
+                clearInputBuffer();
                 printf("Ошибка: введите корректное число часов.\n\n");
                 break;
             }
@@ -597,8 +601,7 @@ int main() {
 
             printf("В какой слот (0-%d) положить предмет? ", MAX_ITEMS - 1);
             if (scanf("%d", &slot_index) != 1) {
-                int c;
-                while ((c = getchar()) != '\n' && c != EOF);
+                clearInputBuffer();
                 printf("Ошибка: введите корректный номер слота.\n\n");
                 break;
             }
@@ -609,8 +612,7 @@ int main() {
 
             printf("Какой ID предмета положить? ");
             if (scanf("%d", &item_id) != 1) {
-                int c;
-                while ((c = getchar()) != '\n' && c != EOF);
+                clearInputBuffer();
                 printf("Ошибка: ID должен быть числом.\n\n");
                 break;
             }
@@ -631,8 +633,7 @@ int main() {
 
             printf("Из какого слота (0-%d) выбросить предмет? ", MAX_ITEMS - 1);
             if (scanf("%d", &slot_index) != 1) {
-                int c;
-                while ((c = getchar()) != '\n' && c != EOF);
+                clearInputBuffer();
                 printf("Ошибка: введите корректный номер слота.\n\n");
                 break;
             }
@@ -659,8 +660,7 @@ int main() {
 
             printf("Введите ID предмета для быстрого доступа: ");
             if (scanf("%d", &target_id) != 1) {
-                int c;
-                while ((c = getchar()) != '\n' && c != EOF);
+                clearInputBuffer();
                 printf("Ошибка: ID должен быть числом.\n\n");
                 break;
             }
@@ -708,8 +708,7 @@ int main() {
 
         case 10: {
             // очистка буфера после scanf
-            int c;
-            while ((c = getchar()) != '\n' && c != EOF);
+            clearInputBuffer();
             startAdventure();
             break;
         }
