@@ -41,6 +41,7 @@ int adventureActive = 0;
 // сколько карт пройдено (дальность от дома)
 int mapsTravelled = 0;
 
+int moveToNextMap(int dx, int dy);
 
 void loadItemNames(char names[][MAX_NAME_LEN]) {
     static const char* defaults[] = {
@@ -302,7 +303,7 @@ int moveHero(int dx, int dy) {
 
     // проверка границ карты типа за край шагать нельзя
     if (newX < 0 || newX >= mapWidth || newY < 0 || newY >= mapHeight) {
-        return 0;
+        return moveToNextMap(dx, dy);
     }
 
     // сквозь деревья и камни ходить нельзя
@@ -359,6 +360,69 @@ char** generateForest(int* outWidth, int* outHeight, int* outHeroX, int* outHero
     *outWidth = w;
     *outHeight = h;
     return map;
+}
+
+// переход на следующую карту при выходе за край
+// dx/dy это направление шага который вывел за край чтобы поставить героя с нужной стороны
+int moveToNextMap(int dx, int dy) {
+    // сначала освобождаем старую карту
+    freeMap(currentMap, mapHeight);
+
+    // генерируем новую
+    int w, h, startX, startY;
+    char** newMap = generateForest(&w, &h, &startX, &startY);
+    if (newMap == NULL) {
+        printf("!Ошибка! Не удалось создать новую карту.\n");
+        currentMap = NULL;
+        adventureActive = 0;  // выходим из приключения
+        return 0;
+    }
+
+    // обновляем состояние
+    currentMap = newMap;
+    mapWidth = w;
+    mapHeight = h;
+
+    // увеличиваем счётчик дальности
+    mapsTravelled++;
+
+    // генератор ставит своего героя,убираем его, он нам не нужен
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            if (currentMap[y][x] == CHAR_HERO) {
+                currentMap[y][x] = CHAR_EMPTY;
+            }
+        }
+    }
+
+    // ставим героя на ту сторону куда он шагал.
+    if (dx > 0) {
+        heroX = 0;                 // пришёл слева
+        heroY = startY;           // на той же высоте где был герой
+    }
+    else if (dx < 0) {
+        heroX = mapWidth - 1;     // пришёл справа
+        heroY = startY;
+    }
+    else if (dy > 0) {
+        heroX = startX;
+        heroY = 0;                // пришёл сверху
+    }
+    else if (dy < 0) {
+        heroX = startX;
+        heroY = mapHeight - 1;   // пришёл снизу
+    }
+    else {
+        // на всякий случай, если dx=dy=0 (не должно быть)
+        heroX = startX;
+        heroY = startY;
+    }
+
+    // рисуем героя на новой карте
+    currentMap[heroY][heroX] = CHAR_HERO;
+
+    printf("=== Вы перешли на новую локацию! Пройдено карт: %d ===\n", mapsTravelled);
+    return 1;  // шаг успешен мы перешли на новую карту
 }
 
 void startAdventure(void) {
