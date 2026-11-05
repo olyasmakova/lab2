@@ -24,6 +24,23 @@
 #define CHAR_CAVE   'O'      // вход в пещеру
 #define CHAR_CAMPFIRE '^'    // костёр: выход домой только отсюда
 
+// !состояние приключения!
+
+// текущая карта и размеры (живут пока идёт приключение)
+char** currentMap = NULL;
+int mapWidth = 0;
+int mapHeight = 0;
+
+// где стоит герой
+int heroX = 0;
+int heroY = 0;
+
+// режим: 1 = идёт приключение, 0 = в меню
+int adventureActive = 0;
+
+// сколько карт пройдено (дальность от дома)
+int mapsTravelled = 0;
+
 
 void loadItemNames(char names[][MAX_NAME_LEN]) {
     static const char* defaults[] = {
@@ -276,6 +293,32 @@ void printMap(char** map, int width, int height) {
         putchar('\n');
     }
 }
+
+// пытается сдвинуть героя на dx клеток вбок и dy вниз
+// возвращает 1 если шаг удался, 0 если клетка непроходима
+int moveHero(int dx, int dy) {
+    int newX = heroX + dx;
+    int newY = heroY + dy;
+
+    // проверка границ карты типа за край шагать нельзя
+    if (newX < 0 || newX >= mapWidth || newY < 0 || newY >= mapHeight) {
+        return 0;
+    }
+
+    // сквозь деревья и камни ходить нельзя
+    char target = currentMap[newY][newX];
+    if (target == CHAR_TREE || target == CHAR_ROCK) {
+        return 0;
+    }
+
+    // шаг. старую клетку освобождаем, новую занимаем
+    currentMap[heroY][heroX] = CHAR_EMPTY;
+    heroX = newX;
+    heroY = newY;
+    currentMap[heroY][heroX] = CHAR_HERO;
+    return 1;
+}
+
 
 char** generateForest(int* outWidth, int* outHeight, int* outHeroX, int* outHeroY) {
     // 1 случайный размер от MIN до MAX включительно
