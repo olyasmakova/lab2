@@ -15,6 +15,10 @@
 #define MAP_MAX_SIZE    30   // максимальный размер карты
 #define OBSTACLE_CHANCE 20   // шанс препятствия в процентах (по заданию 15-30)
 
+#define CAVE_MIN_SIZE  5    // минимальный размер пещеры
+#define CAVE_MAX_SIZE  8    // максимальный размер пещеры
+#define CAVE_WALL_CHANCE 25 // шанс стены внутри пещеры (в процентах)
+
 // символы на карте
 #define CHAR_WALL   '#'      // стена (для пещеры)
 #define CHAR_EMPTY  '.'      // свободная клетка
@@ -44,7 +48,10 @@ int mapsTravelled = 0;
 // тип текущей карты(1 лес, 2 пещера)
 int currentMode = 1;
 
-int moveToNextMap(int dx, int dy);
+// стоит ли герой на костре (костёр под ним затёрт символом @)
+int heroOnCampfire = 0;
+
+int moveToNextMap(void);
 void clearInputBuffer(void);
 
 void loadItemNames(char names[][MAX_NAME_LEN]) {
@@ -310,26 +317,44 @@ int moveHero(int dx, int dy) {
     int newX = heroX + dx;
     int newY = heroY + dy;
 
-    // проверка границ карты типа за край шагать нельзя
+    // карта замкнута стенами, за край шагать нельзя
     if (newX < 0 || newX >= mapWidth || newY < 0 || newY >= mapHeight) {
-        return moveToNextMap(dx, dy);
+        printf("За край нельзя — карта окружена стенами!\n");
+        return 0;
     }
 
-    // сквозь деревья и камни ходить нельзя
     char target = currentMap[newY][newX];
+
+    // сквозь препятствия ходить нельзя
     if (target == CHAR_TREE || target == CHAR_ROCK || target == CHAR_WALL) {
         printf("Там препятствие!\n");
         return 0;
     }
 
-    // шаг. старую клетку освобождаем, новую занимаем
-    currentMap[heroY][heroX] = CHAR_EMPTY;
+    // шаг. старую клетку освобождаем (возвращаем костёр, если стояли на нём)
+    if (heroOnCampfire) {
+        currentMap[heroY][heroX] = CHAR_CAMPFIRE;
+        heroOnCampfire = 0;
+    }
+    else {
+        currentMap[heroY][heroX] = CHAR_EMPTY;
+    }
+
     heroX = newX;
     heroY = newY;
+
+    if (target == CHAR_CAMPFIRE) {
+        heroOnCampfire = 1;
+    }
+
+    // наступили на вход в пещеру то переход на карту другого типа
+    if (target == CHAR_CAVE) {
+        return moveToNextMap();
+    }
+
     currentMap[heroY][heroX] = CHAR_HERO;
     return 1;
 }
-
 
 char** generateForest(int* outWidth, int* outHeight, int* outHeroX, int* outHeroY) {
     // 1 случайный размер от MIN до MAX включительно
@@ -351,6 +376,24 @@ char** generateForest(int* outWidth, int* outHeight, int* outHeroX, int* outHero
         }
     }
 
+    // замыкаем карту стенами по краям
+    for (int x = 0; x < w; x++) {
+        map[0][x] = CHAR_WALL;
+        map[h - 1][x] = CHAR_WALL;
+    }
+    for (int y = 0; y < h; y++) {
+        map[y][0] = CHAR_WALL;
+        map[y][w - 1] = CHAR_WALL;
+    }
+
+    // ставим вход в пещеру O
+    int caveX, caveY;
+    do {
+        caveX = rand() % w;
+        caveY = rand() % h;
+    } while (map[caveY][caveX] != CHAR_EMPTY);
+    map[caveY][caveX] = CHAR_CAVE;
+
     // 3 ставим костёр
     int fireX, fireY;
     do {
@@ -371,18 +414,19 @@ char** generateForest(int* outWidth, int* outHeight, int* outHeroX, int* outHero
     return map;
 }
 
-// генератор пещеры,стены # и пустоты, тупа лескароче
+// генератор пещеры  
+// маленькая карта 5x5..8x8, стены #, выход O
 char** generateCave(int* outWidth, int* outHeight, int* outHeroX, int* outHeroY) {
-    int w = MAP_MIN_SIZE + rand() % (MAP_MAX_SIZE - MAP_MIN_SIZE + 1);
-    int h = MAP_MIN_SIZE + rand() % (MAP_MAX_SIZE - MAP_MIN_SIZE + 1);
+    int w = CAVE_MIN_SIZE + rand() % (CAVE_MAX_SIZE - CAVE_MIN_SIZE + 1);
+    int h = CAVE_MIN_SIZE + rand() % (CAVE_MAX_SIZE - CAVE_MIN_SIZE + 1);
 
     char** map = createMap(w, h);
     if (map == NULL) return NULL;
 
-    // заполняем стенами и пустотами
+    // заполняем случайными стенами
     for (int y = 0; y < h; y++) {
         for (int x = 0; x < w; x++) {
-            if (rand() % 100 < 40) {           // 40% — стены
+            if (rand() % 100 < CAVE_WALL_CHANCE) {
                 map[y][x] = CHAR_WALL;
             }
             else {
@@ -391,13 +435,23 @@ char** generateCave(int* outWidth, int* outHeight, int* outHeroX, int* outHeroY)
         }
     }
 
-    // ставим костёр (тот же код что в лесу)
-    int fireX, fireY;
+    // замыкаем стены по краям
+    for (int x = 0; x < w; x++) {
+        map[0][x] = CHAR_WALL;
+        map[h - 1][x] = CHAR_WALL;
+    }
+    for (int y = 0; y < h; y++) {
+        map[y][0] = CHAR_WALL;
+        map[y][w - 1] = CHAR_WALL;
+    }
+
+    // ставим выход O (вернёт в лес)
+    int exitX, exitY;
     do {
-        fireX = rand() % w;
-        fireY = rand() % h;
-    } while (map[fireY][fireX] != CHAR_EMPTY);
-    map[fireY][fireX] = CHAR_CAMPFIRE;
+        exitX = rand() % w;
+        exitY = rand() % h;
+    } while (map[exitY][exitX] != CHAR_EMPTY);
+    map[exitY][exitX] = CHAR_CAVE;
 
     // ставим героя
     do {
@@ -411,93 +465,50 @@ char** generateCave(int* outWidth, int* outHeight, int* outHeroX, int* outHeroY)
     return map;
 }
 
-// переход на следующую карту при выходе за край
-// dx/dy это направление шага который вывел за край чтобы поставить героя с нужной стороны
-int moveToNextMap(int dx, int dy) {
-    // сначала освобождаем старую карту
+// переход через вход в пещеру O
+int moveToNextMap(void) {
+    // освобождаем старую карту
     freeMap(currentMap, mapHeight);
 
-    // генерируем новую
-    int w, h, startX, startY;
-    // следующая карта того же типачто и текущая
+    // генерируем карту противоположного типа
+    int w, h, sx, sy;
     char** newMap;
     if (currentMode == 1) {
-        newMap = generateForest(&w, &h, &startX, &startY);
+        currentMode = 2;
+        printf("\nВы вошли в пещеру!\n");
+        newMap = generateCave(&w, &h, &sx, &sy);
     }
     else {
-        newMap = generateCave(&w, &h, &startX, &startY);
+        currentMode = 1;
+        printf("\nВы вышли из пещеры в лес!\n");
+        newMap = generateForest(&w, &h, &sx, &sy);
     }
+
     if (newMap == NULL) {
         printf("!Ошибка! Не удалось создать новую карту.\n");
         currentMap = NULL;
-        adventureActive = 0;  // выходим из приключения
+        adventureActive = 0;
         return 0;
     }
 
-    // обновляем состояние
+    // обновляем состояние 
     currentMap = newMap;
     mapWidth = w;
     mapHeight = h;
+    heroX = sx;
+    heroY = sy;
+    heroOnCampfire = 0;   // на новой карте герой не на костре
 
-    // увеличиваем счётчик дальности
     mapsTravelled++;
-
-    // генератор ставит своего героя,убираем его, он нам не нужен
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++) {
-            if (currentMap[y][x] == CHAR_HERO) {
-                currentMap[y][x] = CHAR_EMPTY;
-            }
-        }
-    }
-
-    // ставим героя на ту сторону куда он шагал.
-    if (dx > 0) {
-        heroX = 0;                 // пришёл слева
-        heroY = startY;           // на той же высоте где был герой
-    }
-    else if (dx < 0) {
-        heroX = mapWidth - 1;     // пришёл справа
-        heroY = startY;
-    }
-    else if (dy > 0) {
-        heroX = startX;
-        heroY = 0;                // пришёл сверху
-    }
-    else if (dy < 0) {
-        heroX = startX;
-        heroY = mapHeight - 1;   // пришёл снизу
-    }
-    else {
-        // на всякий случай, если dx=dy=0 (не должно быть)
-        heroX = startX;
-        heroY = startY;
-    }
-
-    // рисуем героя на новой карте
-    currentMap[heroY][heroX] = CHAR_HERO;
-
-    printf("=== Вы перешли на новую локацию! Пройдено карт: %d ===\n", mapsTravelled);
-    return 1;  // шаг успешен мы перешли на новую карту
+    printf("=== Пройдено карт: %d ===\n", mapsTravelled);
+    return 1;
 }
 
 void startAdventure(void) {
     int w, h, startX, startY;
 
-        // спрашиваем режим
-    printf("Выбери локацию: [1] Лес, [2] Пещера: ");
-    int mode = getchar();
-    clearInputBuffer();
-    currentMode = (mode == '2') ? 2 : 1;   // всё кроме '2' — лес
-
-    // Генерируем карту выбранного типа
-    char** map;
-    if (currentMode == 1) {
-        map = generateForest(&w, &h, &startX, &startY);
-    }
-    else {
-        map = generateCave(&w, &h, &startX, &startY);
-    }
+    // Генерируем лес
+    char** map = generateForest(&w, &h, &startX, &startY);
     if (map == NULL) {
         printf("!Ошибка! Не удалось выделить память под карту.\n\n");
         return;
@@ -510,15 +521,13 @@ void startAdventure(void) {
     heroX = startX;
     heroY = startY;
     mapsTravelled = 1;          // мы на первой карте
-    adventureActive = 1;         // включаем режим приключения
+    adventureActive = 1;        // включаем режим приключения
+    heroOnCampfire = 0;
+    currentMode = 1;   // приключение всегда начинается в лесу
 
-    if (currentMode == 1) {
-        printf("\n=== ВЫ В ЛЕСУ ===\n");
-    }
-    else {
-        printf("\n=== ВЫ В ПЕЩЕРЕ ===\n");
-    }
-    printf("Легенда: . = пусто, T = дерево, R = камень, @ = ты, ^ = выход домой\n\n");
+    printf("\n=== ВЫ В ЛЕСУ ===\n");
+    printf("Легенда: . = пусто, T = дерево, R = камень, # = стена,\n");
+    printf("         @ = ты, ^ = костёр (Q — домой), O = вход в пещеру\n\n");
 
     // игровой цикл
     while (adventureActive) {
@@ -553,7 +562,7 @@ void startAdventure(void) {
             break;
         case 'q':
             // выход домой только если стоишь на костре
-            if (currentMap[heroY][heroX] == CHAR_CAMPFIRE) {
+            if (heroOnCampfire) {
                 adventureActive = 0; // выходим из цикла
                 printf("\nВы вернулись домой у костра! Пройдено карт: %d\n\n", mapsTravelled);
             }
