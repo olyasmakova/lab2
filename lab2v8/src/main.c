@@ -6,6 +6,7 @@
 #include <time.h>
 #include <stdlib.h>
 
+#define DAY_HOURS 24
 #define MAX_ITEMS 10
 #define MAX_NAME_LEN 64
 #define MAX_FARMER_NAME 32
@@ -53,6 +54,127 @@ int heroOnCampfire = 0;
 
 int moveToNextMap(void);
 void clearInputBuffer(void);
+void workTime(int* day, int* hour);
+void putItem(int inventory[], const char names[][MAX_NAME_LEN]);
+void dropItem(int inventory[], const char names[][MAX_NAME_LEN]);
+void quickAccess(int inventory[], const char names[][MAX_NAME_LEN]);
+void printInventory(const int inventory[], const char names[][MAX_NAME_LEN]);
+
+// П2: промотать время (поработать)
+void workTime(int* day, int* hour) {
+    int add_hours;
+
+    printf("Сколько часов хотите промотать? ");
+    if (scanf("%d", &add_hours) != 1) {
+        clearInputBuffer();
+        printf("Ошибка: введите корректное число часов.\n\n");
+        return;
+    }
+    if (add_hours < 0) {
+        printf("Ошибка: количество часов не может быть отрицательным.\n\n");
+        return;
+    }
+
+    *hour += add_hours;
+    while (*hour >= DAY_HOURS) {
+        *hour -= DAY_HOURS;
+        (*day)++;
+    }
+    printf("Время промотано. Теперь день %d, %02d:00.\n\n", *day, *hour);
+}
+
+// П4: положить предмет в слот
+void putItem(int inventory[], const char names[][MAX_NAME_LEN]) {
+    int slot_index, item_id;
+
+    printf("В какой слот (0-%d) положить предмет? ", MAX_ITEMS - 1);
+    if (scanf("%d", &slot_index) != 1) {
+        clearInputBuffer();
+        printf("Ошибка: введите корректный номер слота.\n\n");
+        return;
+    }
+    if (slot_index < 0 || slot_index >= MAX_ITEMS) {
+        printf("Ошибка: номер слота должен быть от 0 до %d.\n\n", MAX_ITEMS - 1);
+        return;
+    }
+
+    printf("Какой ID предмета положить? ");
+    if (scanf("%d", &item_id) != 1) {
+        clearInputBuffer();
+        printf("Ошибка: ID должен быть числом.\n\n");
+        return;
+    }
+    if (item_id <= 0 || item_id >= MAX_ITEMS) {
+        printf("Ошибка: ID должен быть от 1 до %d.\n\n", MAX_ITEMS - 1);
+        return;
+    }
+
+    inventory[slot_index] = item_id;
+    printf("Предмет '%s' (ID: %d) положен в слот %d.\n\n", names[item_id], item_id, slot_index);
+}
+
+// П5: выбросить предмет из слота
+void dropItem(int inventory[], const char names[][MAX_NAME_LEN]) {
+    int slot_index;
+
+    printf("Из какого слота (0-%d) выбросить предмет? ", MAX_ITEMS - 1);
+    if (scanf("%d", &slot_index) != 1) {
+        clearInputBuffer();
+        printf("Ошибка: введите корректный номер слота.\n\n");
+        return;
+    }
+    if (slot_index < 0 || slot_index >= MAX_ITEMS) {
+        printf("Ошибка: номер слота должен быть от 0 до %d.\n\n", MAX_ITEMS - 1);
+        return;
+    }
+
+    if (inventory[slot_index] == 0) {
+        printf("В этом слоте и так пусто.\n\n");
+    }
+    else {
+        const char* itemName = names[inventory[slot_index]];
+        inventory[slot_index] = 0;
+        printf("Предмет '%s' из слота %d выброшен.\n\n", itemName, slot_index);
+    }
+}
+
+// В8: быстрый доступ — переместить предмет в слот 0
+void quickAccess(int inventory[], const char names[][MAX_NAME_LEN]) {
+    int target_id;
+
+    printf("Введите ID предмета для быстрого доступа: ");
+    if (scanf("%d", &target_id) != 1) {
+        clearInputBuffer();
+        printf("Ошибка: ID должен быть числом.\n\n");
+        return;
+    }
+    if (target_id <= 0 || target_id >= MAX_ITEMS) {
+        printf("Ошибка: ID должен быть от 1 до %d.\n\n", MAX_ITEMS - 1);
+        return;
+    }
+
+    int found_index = -1;
+    for (int i = 0; i < MAX_ITEMS; i++) {
+        if (inventory[i] == target_id) {
+            found_index = i;
+            break;
+        }
+    }
+
+    if (found_index == -1) {
+        printf("Предмет '%s' не найден в инвентаре.\n\n", names[target_id]);
+    }
+    else {
+        const char* itemName = inventory[found_index] == 0 ? names[0] : names[inventory[found_index]];
+
+        int temp = inventory[0];
+        inventory[0] = inventory[found_index];
+        inventory[found_index] = temp;
+
+        printf("Предмет «%s» перемещён в слот 0.\n", itemName);
+        printInventory(inventory, names);
+    }
+}
 
 void loadItemNames(char names[][MAX_NAME_LEN]) {
     static const char* defaults[] = {
@@ -642,133 +764,25 @@ int main() {
             printf("Сейчас день %d, время: %02d:00\n", current_day, current_hour);
             break;
 
-        case 2: {
-            // П2: промотать время
-            int add_hours;
-            printf("Сколько часов хотите промотать? ");
-
-            if (scanf("%d", &add_hours) != 1) {
-                clearInputBuffer();
-                printf("Ошибка: введите корректное число часов.\n\n");
-                break;
-            }
-
-            if (add_hours < 0) {
-                printf("Ошибка: количество часов не может быть отрицательным.\n\n");
-                break;
-            }
-
-            current_hour += add_hours;
-            while (current_hour >= 24) {
-                current_hour -= 24;
-                current_day++;
-            }
-            printf("Время промотано. Теперь день %d, %02d:00.\n\n", current_day, current_hour);
+        case 2: 
+            workTime(&current_day, &current_hour); 
             break;
-        }
 
         case 3:
             printInventory(inventory, item_names);
             break;
 
-        case 4: {
-            // П4: положить предмет
-            int slot_index, item_id;
-
-            printf("В какой слот (0-%d) положить предмет? ", MAX_ITEMS - 1);
-            if (scanf("%d", &slot_index) != 1) {
-                clearInputBuffer();
-                printf("Ошибка: введите корректный номер слота.\n\n");
-                break;
-            }
-            if (slot_index < 0 || slot_index >= MAX_ITEMS) {
-                printf("Ошибка: номер слота должен быть от 0 до %d.\n\n", MAX_ITEMS - 1);
-                break;
-            }
-
-            printf("Какой ID предмета положить? ");
-            if (scanf("%d", &item_id) != 1) {
-                clearInputBuffer();
-                printf("Ошибка: ID должен быть числом.\n\n");
-                break;
-            }
-            if (item_id <= 0 || item_id >= MAX_ITEMS) {
-                printf("Ошибка: ID должен быть от 1 до %d.\n\n", MAX_ITEMS - 1);
-                break;
-            }
-
-            inventory[slot_index] = item_id;
-            printf("Предмет '%s' (ID: %d) положен в слот %d.\n\n", item_names[item_id], item_id, slot_index);
+        case 4: 
+            putItem(inventory, item_names);
             break;
-        }
 
-
-        case 5: {
-            // П5: выбросить предмет
-            int slot_index;
-
-            printf("Из какого слота (0-%d) выбросить предмет? ", MAX_ITEMS - 1);
-            if (scanf("%d", &slot_index) != 1) {
-                clearInputBuffer();
-                printf("Ошибка: введите корректный номер слота.\n\n");
-                break;
-            }
-            if (slot_index < 0 || slot_index >= MAX_ITEMS) {
-                printf("Ошибка: номер слота должен быть от 0 до %d.\n\n", MAX_ITEMS - 1);
-                break;
-            }
-
-            if (inventory[slot_index] == 0) {
-                printf("В этом слоте и так пусто.\n\n");
-            }
-            else {
-                const char* itemName = item_names[inventory[slot_index]];
-                inventory[slot_index] = 0;
-                printf("Предмет '%s' из слота %d выброшен.\n\n", itemName, slot_index);
-            }
+        case 5:
+            dropItem(inventory, item_names);
             break;
-        }
 
-
-        case 6: {
-            // В8: быстрый доступ — найти предмет и переместить в слот 0
-            int target_id;
-
-            printf("Введите ID предмета для быстрого доступа: ");
-            if (scanf("%d", &target_id) != 1) {
-                clearInputBuffer();
-                printf("Ошибка: ID должен быть числом.\n\n");
-                break;
-            }
-            if (target_id <= 0 || target_id >= MAX_ITEMS) {
-                printf("Ошибка: ID должен быть от 1 до %d.\n\n", MAX_ITEMS - 1);
-                break;
-            }
-
-            int found_index = -1;
-            for (int i = 0; i < MAX_ITEMS; i++) {
-                if (inventory[i] == target_id) {
-                    found_index = i;
-                    break;
-                }
-            }
-
-            if (found_index == -1) {
-                const char* missingName = item_names[target_id];
-                printf("Предмет '%s' не найден в инвентаре.\n\n", missingName);
-            }
-            else {
-                const char* itemName = item_names[inventory[found_index]];
-
-                int temp = inventory[0];
-                inventory[0] = inventory[found_index];
-                inventory[found_index] = temp;
-
-                printf("Предмет «%s» перемещён в слот 0.\n", itemName);
-                printInventory(inventory, item_names);
-            }
+        case 6: 
+            quickAccess(inventory, item_names);
             break;
-        }
 
         case 7: //а тут обработка вывода
             searchItemByName(inventory, item_names);
