@@ -21,8 +21,9 @@
 #define CAVE_WALL_CHANCE 25 // шанс стены внутри пещеры (в процентах)
 
 // символы на карте
-#define CHAR_WALL   '#'      // стена (для пещеры)
+#define CHAR_WALL   '#'      // стена 
 #define CHAR_EMPTY  '.'      // свободная клетка
+#define CHAR_GRASS  ','
 #define CHAR_TREE   'T'      // дерево (препятствие)
 #define CHAR_ROCK   'R'      // камень (препятствие)
 #define CHAR_HERO   '@'      // герой
@@ -49,8 +50,8 @@ int mapsTravelled = 0;
 // тип текущей карты(1 лес, 2 пещера)
 int currentMode = 1;
 
-// стоит ли герой на костре (костёр под ним затёрт символом @)
-int heroOnCampfire = 0;
+//что было под героем пока он стоит на клетке
+char underHero = CHAR_EMPTY;
 
 int moveToNextMap(void);
 void clearInputBuffer(void);
@@ -453,21 +454,13 @@ int moveHero(int dx, int dy) {
         return 0;
     }
 
-    // шаг. старую клетку освобождаем (возвращаем костёр, если стояли на нём)
-    if (heroOnCampfire) {
-        currentMap[heroY][heroX] = CHAR_CAMPFIRE;
-        heroOnCampfire = 0;
-    }
-    else {
-        currentMap[heroY][heroX] = CHAR_EMPTY;
-    }
+    // Возвращаем то что было под героем(точку, запятую или костёр)
+    currentMap[heroY][heroX] = underHero;
 
     heroX = newX;
     heroY = newY;
 
-    if (target == CHAR_CAMPFIRE) {
-        heroOnCampfire = 1;
-    }
+    underHero = target;
 
     // наступили на вход в пещеру то переход на карту другого типа
     if (target == CHAR_CAVE) {
@@ -493,7 +486,7 @@ char** generateForest(int* outWidth, int* outHeight, int* outHeroX, int* outHero
                 map[y][x] = (rand() % 2 == 0) ? CHAR_TREE : CHAR_ROCK;
             }
             else {
-                map[y][x] = CHAR_EMPTY;
+                map[y][x] = (rand() % 2 == 0) ? CHAR_EMPTY : CHAR_GRASS;
             }
         }
     }
@@ -513,7 +506,7 @@ char** generateForest(int* outWidth, int* outHeight, int* outHeroX, int* outHero
     do {
         caveX = rand() % w;
         caveY = rand() % h;
-    } while (map[caveY][caveX] != CHAR_EMPTY);
+    } while (map[caveY][caveX] != CHAR_EMPTY && map[caveY][caveX] != CHAR_GRASS);
     map[caveY][caveX] = CHAR_CAVE;
 
     // 3 ставим костёр
@@ -521,14 +514,15 @@ char** generateForest(int* outWidth, int* outHeight, int* outHeroX, int* outHero
     do {
         fireX = rand() % w;
         fireY = rand() % h;
-    } while (map[fireY][fireX] != CHAR_EMPTY);
+    } while (map[fireY][fireX] != CHAR_EMPTY && map[fireY][fireX] != CHAR_GRASS);
     map[fireY][fireX] = CHAR_CAMPFIRE;
 
     // 4 Ставим героя (на свободную клетку не на костёр)
     do {
         *outHeroX = rand() % w;
         *outHeroY = rand() % h;
-    } while (map[*outHeroY][*outHeroX] != CHAR_EMPTY);
+    } while (map[*outHeroY][*outHeroX] != CHAR_EMPTY && map[*outHeroY][*outHeroX] != CHAR_GRASS);
+    underHero = map[*outHeroY][*outHeroX];
     map[*outHeroY][*outHeroX] = CHAR_HERO;
 
     *outWidth = w;
@@ -552,7 +546,7 @@ char** generateCave(int* outWidth, int* outHeight, int* outHeroX, int* outHeroY)
                 map[y][x] = CHAR_WALL;
             }
             else {
-                map[y][x] = CHAR_EMPTY;
+                map[y][x] = (rand() % 2 == 0) ? CHAR_EMPTY : CHAR_GRASS;
             }
         }
     }
@@ -572,14 +566,15 @@ char** generateCave(int* outWidth, int* outHeight, int* outHeroX, int* outHeroY)
     do {
         exitX = rand() % w;
         exitY = rand() % h;
-    } while (map[exitY][exitX] != CHAR_EMPTY);
+    } while (map[exitY][exitX] != CHAR_EMPTY && map[exitY][exitX] != CHAR_GRASS);
     map[exitY][exitX] = CHAR_CAVE;
 
     // ставим героя
     do {
         *outHeroX = rand() % w;
         *outHeroY = rand() % h;
-    } while (map[*outHeroY][*outHeroX] != CHAR_EMPTY);
+    } while (map[*outHeroY][*outHeroX] != CHAR_EMPTY && map[*outHeroY][*outHeroX] != CHAR_GRASS);
+    underHero = map[*outHeroY][*outHeroX];
     map[*outHeroY][*outHeroX] = CHAR_HERO;
 
     *outWidth = w;
@@ -619,7 +614,6 @@ int moveToNextMap(void) {
     mapHeight = h;
     heroX = sx;
     heroY = sy;
-    heroOnCampfire = 0;   // на новой карте герой не на костре
 
     mapsTravelled++;
     printf("=== Пройдено карт: %d ===\n", mapsTravelled);
@@ -643,12 +637,10 @@ void startAdventure(void) {
     heroX = startX;
     heroY = startY;
     mapsTravelled = 1;          // мы на первой карте
-    adventureActive = 1;        // включаем режим приключения
-    heroOnCampfire = 0;
     currentMode = 1;   // приключение всегда начинается в лесу
 
     printf("\n=== ВЫ В ЛЕСУ ===\n");
-    printf("Легенда: . = пусто, T = дерево, R = камень, # = стена,\n");
+    printf("Легенда: . , = пусто, T = дерево, R = камень, # = стена,\n");
     printf("         @ = ты, ^ = костёр (Q — домой), O = вход в пещеру\n\n");
 
     // игровой цикл
@@ -661,10 +653,17 @@ void startAdventure(void) {
 
         int c = getchar();
 
-        // пропускаем лишние переносы строки
-        if (c == '\n') continue;
+        // 1 сначала убираем пустые строки 
+        if (c == '\n') {
+            continue;
+        }
 
-        // приводим к нижнему регистру есл нажали Shift+W
+        // 2дальше игнорируем всё что вообще не буква 
+        if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))) {
+            continue;
+        }
+
+        // 3 Приводим к нижнему регистру
         if (c >= 'A' && c <= 'Z') {
             c = c + ('a' - 'A');
         }
@@ -683,8 +682,7 @@ void startAdventure(void) {
             moveHero(1, 0);
             break;
         case 'q':
-            // выход домой только если стоишь на костре
-            if (heroOnCampfire) {
+            if (underHero == CHAR_CAMPFIRE) {
                 adventureActive = 0; // выходим из цикла
                 printf("\nВы вернулись домой у костра! Пройдено карт: %d\n\n", mapsTravelled);
             }
