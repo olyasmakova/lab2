@@ -11,7 +11,20 @@ struct Player {
     int max_stamina;
     int gold;
     int inventory[MAX_ITEMS];
+    Relic active_relic;  // слот под экипированную реликвию
 };
+
+typedef enum {
+    RELIC_NONE = 0,
+    RELIC_GREED,      // удваивает золото за пройденную карту
+    RELIC_QUICK,      // переход на карту стоит 1 стамину вместо 5
+    RELIC_HEAL        // восстанавливает 1 хп за шаг
+} RelicEffect;
+
+typedef struct {
+    RelicEffect effect;
+    const char* name;
+} Relic;
 
 struct Player* createPlayer(void);
 void deletePlayer(struct Player** player);

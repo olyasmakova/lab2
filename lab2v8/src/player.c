@@ -26,6 +26,10 @@ struct Player* createPlayer(void) {
     p->stamina = p->max_stamina;
     p->gold = 0;
 
+    // стартовая реликвия, у героя пока ничего не надето
+    p->active_relic.effect = RELIC_NONE;
+    p->active_relic.name = NULL;
+
     // стартовый инвентарь
     static const int start_inventory[MAX_ITEMS] = { 1, 0, 2, 3, 0, 4, 5, 0, 1, 2 };
     for (int i = 0; i < MAX_ITEMS; i++) {
