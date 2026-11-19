@@ -33,8 +33,11 @@
 #define START_MAX_HP       100
 #define START_MAX_STAMINA  50
 #define BASE_REWARD        10     // базовый множитель награды за пройденную карту
-#define FLOOR_STAMINA_COST 5      // стамина за переход на новый этаж
+#define FLOOR_STAMINA_COST 5      // стамина за переход на новуюкарту
 #define STEP_STAMINA_COST  1      // стамина за шаг
+
+#define RELIC_DROP_CHANCE  20  // шанс 20% найти реликвию при переходе
+#define RELIC_SELL_PRICE   25  // цена продажи реликвии на месте
 
 // перечисление типов карт
 enum GameMode {

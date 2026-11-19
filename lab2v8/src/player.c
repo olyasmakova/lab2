@@ -199,3 +199,13 @@ void searchItemByName(const int inventory[], const char names[][MAX_NAME_LEN]) {
     }
     printf("\n");
 }
+
+Relic generateRandomRelic(void) {
+    Relic r;
+    int type = rand() % 3;
+
+    if (type == 0) { r.effect = RELIC_GREED; r.name = "Кольцо жадности"; }
+    else if (type == 1) { r.effect = RELIC_QUICK; r.name = "Сапоги-скороходы"; }
+    else { r.effect = RELIC_HEAL;  r.name = "Камень тролля"; }
+    return r;
+}

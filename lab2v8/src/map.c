@@ -210,6 +210,23 @@ int moveToNextMap(struct Map* map, struct Player* player, int* day, int* hour) {
     player->gold += reward;
     printf("Награда за новую карту: +%d золота!\n", reward);
 
+    // >>> СЮДА: шанс 20% на реликвию <<<
+    if (rand() % 100 < RELIC_DROP_CHANCE) {
+        Relic found = generateRandomRelic();
+        printf("\n!!! НАЙДЕНА РЕЛИКВИЯ: %s !!!\n", found.name);
+        printf("[1] Надеть (старый талисман пропадёт)\n");
+        printf("[2] Продать за 25 золотых\n");
+        int choice = getIntSafe("Ваш выбор: ");
+        if (choice == 1) {
+            player->active_relic = found;
+            printf("Вы надели: %s\n", found.name);
+        }
+        else {
+            player->gold += RELIC_SELL_PRICE;
+            printf("Вы продали реликвию за %d золота.\n", RELIC_SELL_PRICE);
+        }
+    }
+
     (*hour) += 1;
     if (*hour >= DAY_HOURS) {
         *hour -= DAY_HOURS;

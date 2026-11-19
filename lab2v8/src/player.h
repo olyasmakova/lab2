@@ -35,5 +35,6 @@ void putItem(int inventory[], const char names[][MAX_NAME_LEN]);
 void dropItem(int inventory[], const char names[][MAX_NAME_LEN]);
 void quickAccess(int inventory[], const char names[][MAX_NAME_LEN]);
 void searchItemByName(const int inventory[], const char names[][MAX_NAME_LEN]);
+Relic generateRandomRelic(void);
 
 #endif 
