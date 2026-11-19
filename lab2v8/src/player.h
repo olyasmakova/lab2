@@ -1,0 +1,26 @@
+﻿#ifndef PLAYER_H
+#define PLAYER_H
+
+#include "utils.h"
+
+struct Player {
+    char name[MAX_FARMER_NAME];
+    int hp;
+    int max_hp;
+    int stamina;
+    int max_stamina;
+    int gold;
+    int inventory[MAX_ITEMS];
+};
+
+struct Player* createPlayer(void);
+void deletePlayer(struct Player** player);
+void showPlayerCard(const struct Player* player, int day, int hour, const char names[][MAX_NAME_LEN]);
+
+void printInventory(const int inventory[], const char names[][MAX_NAME_LEN]);
+void putItem(int inventory[], const char names[][MAX_NAME_LEN]);
+void dropItem(int inventory[], const char names[][MAX_NAME_LEN]);
+void quickAccess(int inventory[], const char names[][MAX_NAME_LEN]);
+void searchItemByName(const int inventory[], const char names[][MAX_NAME_LEN]);
+
+#endif 

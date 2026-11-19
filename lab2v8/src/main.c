@@ -6,806 +6,185 @@
 #include <time.h>
 #include <stdlib.h>
 
-#define DAY_HOURS 24
-#define MAX_ITEMS 10
-#define MAX_NAME_LEN 64
-#define MAX_FARMER_NAME 32
-
-// константы приключения
-#define MAP_MIN_SIZE    5    // минимальный размер карты
-#define MAP_MAX_SIZE    30   // максимальный размер карты
-#define OBSTACLE_CHANCE 20   // шанс препятствия в процентах (по заданию 15-30)
-
-#define CAVE_MIN_SIZE  5    // минимальный размер пещеры
-#define CAVE_MAX_SIZE  8    // максимальный размер пещеры
-#define CAVE_WALL_CHANCE 25 // шанс стены внутри пещеры (в процентах)
-
-// символы на карте
-#define CHAR_WALL   '#'      // стена 
-#define CHAR_EMPTY  '.'      // свободная клетка
-#define CHAR_GRASS  ','
-#define CHAR_TREE   'T'      // дерево (препятствие)
-#define CHAR_ROCK   'R'      // камень (препятствие)
-#define CHAR_HERO   '@'      // герой
-#define CHAR_CAVE   'O'      // вход в пещеру
-#define CHAR_CAMPFIRE '^'    // костёр: выход домой только отсюда
-
-// !состояние приключения!
-
-// текущая карта и размеры (живут пока идёт приключение)
-char** currentMap = NULL;
-int mapWidth = 0;
-int mapHeight = 0;
-
-// где стоит герой
-int heroX = 0;
-int heroY = 0;
-
-// режим: 1 = идёт приключение, 0 = в меню
-int adventureActive = 0;
-
-// сколько карт пройдено (дальность от дома)
-int mapsTravelled = 0;
-
-// тип текущей карты(1 лес, 2 пещера)
-int currentMode = 1;
-
-//что было под героем пока он стоит на клетке
-char underHero = CHAR_EMPTY;
-
-int moveToNextMap(void);
-void clearInputBuffer(void);
-void workTime(int* day, int* hour);
-void putItem(int inventory[], const char names[][MAX_NAME_LEN]);
-void dropItem(int inventory[], const char names[][MAX_NAME_LEN]);
-void quickAccess(int inventory[], const char names[][MAX_NAME_LEN]);
-void printInventory(const int inventory[], const char names[][MAX_NAME_LEN]);
-
-// П2: промотать время (поработать)
-void workTime(int* day, int* hour) {
-    int add_hours;
-
-    printf("Сколько часов хотите промотать? ");
-    if (scanf("%d", &add_hours) != 1) {
-        clearInputBuffer();
-        printf("Ошибка: введите корректное число часов.\n\n");
-        return;
-    }
-    if (add_hours < 0) {
-        printf("Ошибка: количество часов не может быть отрицательным.\n\n");
-        return;
-    }
-
-    *hour += add_hours;
-    while (*hour >= DAY_HOURS) {
-        *hour -= DAY_HOURS;
-        (*day)++;
-    }
-    printf("Время промотано. Теперь день %d, %02d:00.\n\n", *day, *hour);
-}
-
-// П4: положить предмет в слот
-void putItem(int inventory[], const char names[][MAX_NAME_LEN]) {
-    int slot_index, item_id;
-
-    printf("В какой слот (0-%d) положить предмет? ", MAX_ITEMS - 1);
-    if (scanf("%d", &slot_index) != 1) {
-        clearInputBuffer();
-        printf("Ошибка: введите корректный номер слота.\n\n");
-        return;
-    }
-    if (slot_index < 0 || slot_index >= MAX_ITEMS) {
-        printf("Ошибка: номер слота должен быть от 0 до %d.\n\n", MAX_ITEMS - 1);
-        return;
-    }
-
-    printf("Какой ID предмета положить? ");
-    if (scanf("%d", &item_id) != 1) {
-        clearInputBuffer();
-        printf("Ошибка: ID должен быть числом.\n\n");
-        return;
-    }
-    if (item_id <= 0 || item_id >= MAX_ITEMS) {
-        printf("Ошибка: ID должен быть от 1 до %d.\n\n", MAX_ITEMS - 1);
-        return;
-    }
-
-    inventory[slot_index] = item_id;
-    printf("Предмет '%s' (ID: %d) положен в слот %d.\n\n", names[item_id], item_id, slot_index);
-}
-
-// П5: выбросить предмет из слота
-void dropItem(int inventory[], const char names[][MAX_NAME_LEN]) {
-    int slot_index;
-
-    printf("Из какого слота (0-%d) выбросить предмет? ", MAX_ITEMS - 1);
-    if (scanf("%d", &slot_index) != 1) {
-        clearInputBuffer();
-        printf("Ошибка: введите корректный номер слота.\n\n");
-        return;
-    }
-    if (slot_index < 0 || slot_index >= MAX_ITEMS) {
-        printf("Ошибка: номер слота должен быть от 0 до %d.\n\n", MAX_ITEMS - 1);
-        return;
-    }
-
-    if (inventory[slot_index] == 0) {
-        printf("В этом слоте и так пусто.\n\n");
-    }
-    else {
-        const char* itemName = names[inventory[slot_index]];
-        inventory[slot_index] = 0;
-        printf("Предмет '%s' из слота %d выброшен.\n\n", itemName, slot_index);
-    }
-}
-
-// В8: быстрый доступ — переместить предмет в слот 0
-void quickAccess(int inventory[], const char names[][MAX_NAME_LEN]) {
-    int target_id;
-
-    printf("Введите ID предмета для быстрого доступа: ");
-    if (scanf("%d", &target_id) != 1) {
-        clearInputBuffer();
-        printf("Ошибка: ID должен быть числом.\n\n");
-        return;
-    }
-    if (target_id <= 0 || target_id >= MAX_ITEMS) {
-        printf("Ошибка: ID должен быть от 1 до %d.\n\n", MAX_ITEMS - 1);
-        return;
-    }
-
-    int found_index = -1;
-    for (int i = 0; i < MAX_ITEMS; i++) {
-        if (inventory[i] == target_id) {
-            found_index = i;
-            break;
-        }
-    }
-
-    if (found_index == -1) {
-        printf("Предмет '%s' не найден в инвентаре.\n\n", names[target_id]);
-    }
-    else {
-        const char* itemName = inventory[found_index] == 0 ? names[0] : names[inventory[found_index]];
-
-        int temp = inventory[0];
-        inventory[0] = inventory[found_index];
-        inventory[found_index] = temp;
-
-        printf("Предмет «%s» перемещён в слот 0.\n", itemName);
-        printInventory(inventory, names);
-    }
-}
-
-void loadItemNames(char names[][MAX_NAME_LEN]) {
-    static const char* defaults[] = {
-        "Пусто", "Мотыга", "Семена пшеницы", "Вода", "Удобрения",
-        "Корзинка", "Морковь", "Лопата", "Картошка", "Лампочка"
-    };
-
-    FILE* file = fopen("items.txt", "r");
-    if (file == NULL) {
-        for (int i = 0; i < MAX_ITEMS; i++) {
-            strncpy(names[i], defaults[i], MAX_NAME_LEN - 1);
-            names[i][MAX_NAME_LEN - 1] = '\0';
-        }
-        printf("!Предупреждение! файл items.txt не найден. Использованы стандартные названия.\n");
-        return;
-    }
-
-    for (int i = 0; i < MAX_ITEMS; i++) {
-        char buffer[MAX_NAME_LEN];
-        if (fgets(buffer, sizeof(buffer), file) != NULL) {
-            size_t len = strlen(buffer);
-            if (len > 0 && buffer[len - 1] == '\n') {
-                buffer[len - 1] = '\0';
-            }
-            strncpy(names[i], buffer, MAX_NAME_LEN - 1);
-            names[i][MAX_NAME_LEN - 1] = '\0';
-        }
-        else {
-            strncpy(names[i], defaults[i], MAX_NAME_LEN - 1);
-            names[i][MAX_NAME_LEN - 1] = '\0';
-        }
-    }
-    fclose(file);
-}
-
-void printInventory(const int inventory[], const char names[][MAX_NAME_LEN]) {
-    printf("\n--- ИНВЕНТАРЬ ФЕРМЕРА ---\n");
-    for (int i = 0; i < MAX_ITEMS; i++) {
-        int id = inventory[i];
-        const char* name = names[id];
-
-        if (id == 0) {
-            printf("Слот %d: [%s]\n", i, name);
-        }
-        else {
-            printf("Слот %d: [%s] (ID: %d)\n", i, name, id);
-        }
-    }
-    printf("--------------------------\n\n");
-}
-
-void searchItemByName(const int inventory[], const char names[][MAX_NAME_LEN]) {
-    char searchName[MAX_NAME_LEN];
-
-    clearInputBuffer();
-
-    printf("Введите название предмета для поиска (например Мотыга): ");
-
-    // тут строка читается
-    if (fgets(searchName, sizeof(searchName), stdin) == NULL) {
-        printf("Ошибка ввода.\n\n");
-        return;
-    }
-
-    // убираем \n если он есть 
-    size_t len = strlen(searchName);
-    if (len > 0 && searchName[len - 1] == '\n') {
-        searchName[len - 1] = '\0';
-    }
-
-    int found = 0; // нашли хоть один предмет или нет
-
-    for (int i = 0; i < MAX_ITEMS; i++) {
-        // сравниваем название предмета в слоте с тем что ввели
-        if (strcmp(names[inventory[i]], searchName) == 0) {
-            printf("Найден! слот %d — '%s' (ID: %d)\n", i, names[inventory[i]], inventory[i]);
-            found = 1;
-        }
-    }
-
-    if (!found) {
-        printf("Предмет с названием '%s' не найден в инвентаре.\n", searchName);
-    }
-    printf("\n");
-}
-
-void writeDiary(const char* farmerName, int day, int hour, const int inventory[], const char names[][MAX_NAME_LEN]) {
-    FILE* diary = fopen("diary.txt", "a");
-    if (diary == NULL) {
-        printf("!Ошибка! Не удалось открыть diary.txt для записи.\n\n");
-        return;
-    }
-
-    // тут вывод на экран для игрока
-    printf("\n=== ЗАПИСЬ В ДНЕВНИКЕ ===\n");
-    printf("Фермер: %s\n", farmerName);
-    printf("Дата: День %d, Час %d\n", day, hour);
-    printf("Содержимое инвентаря:\n");
-
-    int hasItems = 0;
-    for (int i = 0; i < MAX_ITEMS; i++) {
-        if (inventory[i] != 0) {
-            printf("  Слот %d: %s (ID: %d)\n", i, names[inventory[i]], inventory[i]);
-            hasItems = 1;
-        }
-    }
-    if (!hasItems) {
-        printf("  Инвентарь пуст.\n");
-    }
-    printf("====================================\n\n");
-
-    // а тут то же самое в файлик
-    fprintf(diary, "=== ЗАПИСЬ В ДНЕВНИКЕ ===\n");
-    fprintf(diary, "Фермер: %s\n", farmerName);
-    fprintf(diary, "Дата: День %d, Час %d\n", day, hour);
-    fprintf(diary, "Содержимое инвентаря:\n");
-
-    hasItems = 0;
-    for (int i = 0; i < MAX_ITEMS; i++) {
-        if (inventory[i] != 0) {
-            fprintf(diary, "  Слот %d: %s (ID: %d)\n", i, names[inventory[i]], inventory[i]);
-            hasItems = 1;
-        }
-    }
-    if (!hasItems) {
-        fprintf(diary, "  Инвентарь пуст.\n");
-    }
-    fprintf(diary, "=========================\n\n");
-
-    fclose(diary);
-    printf("Запись сохранена в diary.txt\n\n");
-}
-
-void analyzeLogs(const char* inputFile, const char* outputFile) {
-    FILE* in = fopen(inputFile, "r");
-    if (in == NULL) {
-        printf("!Ошибка! Не удалось открыть %s для чтения. Создайте файл в папке запуска.\n\n", inputFile);
-        return;
-    }
-
-    FILE* out = fopen(outputFile, "w");
-    if (out == NULL) {
-        printf("!Ошибка! Не удалось создать %s для записи.\n\n", outputFile);
-        fclose(in);
-        return;
-    }
-
-    char buffer[512];
-    int lineNum = 0;
-    int countInfo = 0, countWarn = 0, countError = 0;
-
-    while (fgets(buffer, sizeof(buffer), in) != NULL) {
-        lineNum++;
-
-        // Ищем теги
-        if (strstr(buffer, "[INFO]") != NULL) {
-            countInfo++;
-        }
-        if (strstr(buffer, "[WARN]") != NULL) {
-            countWarn++;
-        }
-        if (strstr(buffer, "[ERROR]") != NULL) {
-            countError++;
-        }
-
-        // если warn или error пишем в output без тега и с номером строки
-        if (strstr(buffer, "[WARN]") != NULL || strstr(buffer, "[ERROR]") != NULL) {
-            // находим начало текста после тега
-            const char* start = NULL;
-            if (strstr(buffer, "[WARN]") != NULL) {
-                start = strstr(buffer, "[WARN]");
-                if (start != NULL) start += 6; // пропускаем warn (6 символов)
-            }
-            else if (strstr(buffer, "[ERROR]") != NULL) {
-                start = strstr(buffer, "[ERROR]");
-                if (start != NULL) start += 7; // пропускаем error (7 символов)
-            }
-
-            // eсли нашли пропускаем возможные пробелы после тега
-            if (start != NULL) {
-                while (*start == ' ') start++;
-            }
-            else {
-                // если тег есть но логика не сработала пишем как есть
-                start = buffer;
-            }
-
-            fprintf(out, "%d: %s", lineNum, start);
-        }
-    }
-
-    fclose(in);
-    fclose(out);
-
-    // dывод статистики на экран
-    printf("\n=== АНАЛИЗ ЛОГОВ (%s) ===\n", inputFile);
-    printf("Всего строк: %d\n", lineNum);
-    printf("[INFO]: %d\n", countInfo);
-    printf("[WARN]: %d\n", countWarn);
-    printf("[ERROR]: %d\n", countError);
-    printf("===========================\n\n");
-}
-
-// имбуля чистит буфер после неудачного scanf
-void clearInputBuffer(void) {
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF);
-}
-
-// карта приключения
-
-// выделяет динамическую карту(массив указателей на строки)
-// сначала malloc под массив указателей (height штук)
-// потом в цикле malloc под каждую строку (width символов)
-// Возвращает NULL если память не выделилась
-char** createMap(int width, int height) {
-    char** map = (char**)malloc(height * sizeof(char*));
-    if (map == NULL) {
-        return NULL; // не хватило памяти под массив указателей
-    }
-
-    for (int i = 0; i < height; i++) {
-        map[i] = (char*)malloc(width * sizeof(char));
-        if (map[i] == NULL) {
-            // память кончилась на середине тоогда освобождаем всё что успели выделить
-            for (int j = 0; j < i; j++) {
-                free(map[j]);
-            }
-            free(map);
-            return NULL;
-        }
-    }
-    return map;
-}
-
-// освобождает память карты (сначала все строки, потом массив указателей)
-// защищена от вызова с NULL (повторное освобождение не сломает программу)
-void freeMap(char** map, int height) {
-
-
-    if (map == NULL) {
-        return;
-    }
-    for (int i = 0; i < height; i++) {
-        free(map[i]);
-    }
-    free(map);
-}
-
-void printMap(char** map, int width, int height) {
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-            putchar(map[y][x]);
-        }
-        putchar('\n');
-    }
-}
-
-// пытается сдвинуть героя на dx клеток вбок и dy вниз
-// возвращает 1 если шаг удался, 0 если клетка непроходима
-int moveHero(int dx, int dy) {
-    int newX = heroX + dx;
-    int newY = heroY + dy;
-
-    // карта замкнута стенами, за край шагать нельзя
-    if (newX < 0 || newX >= mapWidth || newY < 0 || newY >= mapHeight) {
-        printf("За край нельзя — карта окружена стенами!\n");
-        return 0;
-    }
-
-    char target = currentMap[newY][newX];
-
-    // сквозь препятствия ходить нельзя
-    if (target == CHAR_TREE || target == CHAR_ROCK || target == CHAR_WALL) {
-        printf("Там препятствие!\n");
-        return 0;
-    }
-
-    // Возвращаем то что было под героем(точку, запятую или костёр)
-    currentMap[heroY][heroX] = underHero;
-
-    heroX = newX;
-    heroY = newY;
-
-    underHero = target;
-
-    // наступили на вход в пещеру то переход на карту другого типа
-    if (target == CHAR_CAVE) {
-        return moveToNextMap();
-    }
-
-    currentMap[heroY][heroX] = CHAR_HERO;
-    return 1;
-}
-
-char** generateForest(int* outWidth, int* outHeight, int* outHeroX, int* outHeroY) {
-    // 1 случайный размер от MIN до MAX включительно
-    int w = MAP_MIN_SIZE + rand() % (MAP_MAX_SIZE - MAP_MIN_SIZE + 1);
-    int h = MAP_MIN_SIZE + rand() % (MAP_MAX_SIZE - MAP_MIN_SIZE + 1);
-
-    char** map = createMap(w, h);
-    if (map == NULL) return NULL;
-
-    // 2 заполняем препятствиями
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++) {
-            if (rand() % 100 < OBSTACLE_CHANCE) {
-                map[y][x] = (rand() % 2 == 0) ? CHAR_TREE : CHAR_ROCK;
-            }
-            else {
-                map[y][x] = (rand() % 2 == 0) ? CHAR_EMPTY : CHAR_GRASS;
-            }
-        }
-    }
-
-    // замыкаем карту стенами по краям
-    for (int x = 0; x < w; x++) {
-        map[0][x] = CHAR_WALL;
-        map[h - 1][x] = CHAR_WALL;
-    }
-    for (int y = 0; y < h; y++) {
-        map[y][0] = CHAR_WALL;
-        map[y][w - 1] = CHAR_WALL;
-    }
-
-    // ставим вход в пещеру O
-    int caveX, caveY;
-    do {
-        caveX = rand() % w;
-        caveY = rand() % h;
-    } while (map[caveY][caveX] != CHAR_EMPTY && map[caveY][caveX] != CHAR_GRASS);
-    map[caveY][caveX] = CHAR_CAVE;
-
-    // 3 ставим костёр
-    int fireX, fireY;
-    do {
-        fireX = rand() % w;
-        fireY = rand() % h;
-    } while (map[fireY][fireX] != CHAR_EMPTY && map[fireY][fireX] != CHAR_GRASS);
-    map[fireY][fireX] = CHAR_CAMPFIRE;
-
-    // 4 Ставим героя (на свободную клетку не на костёр)
-    do {
-        *outHeroX = rand() % w;
-        *outHeroY = rand() % h;
-    } while (map[*outHeroY][*outHeroX] != CHAR_EMPTY && map[*outHeroY][*outHeroX] != CHAR_GRASS);
-    underHero = map[*outHeroY][*outHeroX];
-    map[*outHeroY][*outHeroX] = CHAR_HERO;
-
-    *outWidth = w;
-    *outHeight = h;
-    return map;
-}
-
-// генератор пещеры  
-// маленькая карта 5x5..8x8, стены #, выход O
-char** generateCave(int* outWidth, int* outHeight, int* outHeroX, int* outHeroY) {
-    int w = CAVE_MIN_SIZE + rand() % (CAVE_MAX_SIZE - CAVE_MIN_SIZE + 1);
-    int h = CAVE_MIN_SIZE + rand() % (CAVE_MAX_SIZE - CAVE_MIN_SIZE + 1);
-
-    char** map = createMap(w, h);
-    if (map == NULL) return NULL;
-
-    // заполняем случайными стенами
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++) {
-            if (rand() % 100 < CAVE_WALL_CHANCE) {
-                map[y][x] = CHAR_WALL;
-            }
-            else {
-                map[y][x] = (rand() % 2 == 0) ? CHAR_EMPTY : CHAR_GRASS;
-            }
-        }
-    }
-
-    // замыкаем стены по краям
-    for (int x = 0; x < w; x++) {
-        map[0][x] = CHAR_WALL;
-        map[h - 1][x] = CHAR_WALL;
-    }
-    for (int y = 0; y < h; y++) {
-        map[y][0] = CHAR_WALL;
-        map[y][w - 1] = CHAR_WALL;
-    }
-
-    // ставим выход O (вернёт в лес)
-    int exitX, exitY;
-    do {
-        exitX = rand() % w;
-        exitY = rand() % h;
-    } while (map[exitY][exitX] != CHAR_EMPTY && map[exitY][exitX] != CHAR_GRASS);
-    map[exitY][exitX] = CHAR_CAVE;
-
-    // ставим героя
-    do {
-        *outHeroX = rand() % w;
-        *outHeroY = rand() % h;
-    } while (map[*outHeroY][*outHeroX] != CHAR_EMPTY && map[*outHeroY][*outHeroX] != CHAR_GRASS);
-    underHero = map[*outHeroY][*outHeroX];
-    map[*outHeroY][*outHeroX] = CHAR_HERO;
-
-    *outWidth = w;
-    *outHeight = h;
-    return map;
-}
-
-// переход через вход в пещеру O
-int moveToNextMap(void) {
-    // освобождаем старую карту
-    freeMap(currentMap, mapHeight);
-
-    // генерируем карту противоположного типа
-    int w, h, sx, sy;
-    char** newMap;
-    if (currentMode == 1) {
-        currentMode = 2;
-        printf("\nВы вошли в пещеру!\n");
-        newMap = generateCave(&w, &h, &sx, &sy);
-    }
-    else {
-        currentMode = 1;
-        printf("\nВы вышли из пещеры в лес!\n");
-        newMap = generateForest(&w, &h, &sx, &sy);
-    }
-
-    if (newMap == NULL) {
-        printf("!Ошибка! Не удалось создать новую карту.\n");
-        currentMap = NULL;
-        adventureActive = 0;
-        return 0;
-    }
-
-    // обновляем состояние 
-    currentMap = newMap;
-    mapWidth = w;
-    mapHeight = h;
-    heroX = sx;
-    heroY = sy;
-
-    mapsTravelled++;
-    printf("=== Пройдено карт: %d ===\n", mapsTravelled);
-    return 1;
-}
-
-void startAdventure(void) {
-    int w, h, startX, startY;
-
-    // Генерируем лес
-    char** map = generateForest(&w, &h, &startX, &startY);
-    if (map == NULL) {
-        printf("!Ошибка! Не удалось выделить память под карту.\n\n");
-        return;
-    }
-
-    // Инициализируем состояние
-    currentMap = map;
-    mapWidth = w;
-    mapHeight = h;
-    heroX = startX;
-    heroY = startY;
-    mapsTravelled = 1;          // мы на первой карте
-    currentMode = 1;   // приключение всегда начинается в лесу
-
-    printf("\n=== ВЫ В ЛЕСУ ===\n");
-    printf("Легенда: . , = пусто, T = дерево, R = камень, # = стена,\n");
-    printf("         @ = ты, ^ = костёр (Q — домой), O = вход в пещеру\n\n");
-
-    // игровой цикл
-    while (adventureActive) {
-        // рисуем карту
-        printMap(currentMap, mapWidth, mapHeight);
-
-        printf("\n[WASD] — ходить, [Q] — выйти домой (только у костра)\n");
-        printf("> ");
-
-        int c = getchar();
-
-        // 1 сначала убираем пустые строки 
-        if (c == '\n') {
-            continue;
-        }
-
-        // 2дальше игнорируем всё что вообще не буква 
-        if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))) {
-            continue;
-        }
-
-        // 3 Приводим к нижнему регистру
-        if (c >= 'A' && c <= 'Z') {
-            c = c + ('a' - 'A');
-        }
-
-        switch (c) {
-        case 'w':
-            moveHero(0, -1);
-            break;
-        case 's':
-            moveHero(0, 1);
-            break;
-        case 'a':
-            moveHero(-1, 0);
-            break;
-        case 'd':
-            moveHero(1, 0);
-            break;
-        case 'q':
-            if (underHero == CHAR_CAMPFIRE) {
-                adventureActive = 0; // выходим из цикла
-                printf("\nВы вернулись домой у костра! Пройдено карт: %d\n\n", mapsTravelled);
-            }
-            else {
-                printf("Нельзя выйти отсюда! Найдите костёр (^).\n");
-            }
-            break;
-        default:
-            printf("Неизвестная команда. Используйте WASD или Q.\n");
-            break;
-        }
-    }
-
-    // освобождаем память и сбрасываем состояние
-    freeMap(currentMap, mapHeight);
-    currentMap = NULL;
-    adventureActive = 0;
-    // heroX/Y можно не обнулять впринципе
-}
-
+#include "utils.h"
+#include "player.h"
+#include "map.h"
 
 int main() {
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
 
-    srand((unsigned)time(NULL)); 
+    srand((unsigned)time(NULL));
 
-    char farmer_name[MAX_FARMER_NAME];
-    printf("Введите имя вашего фермера: ");
-    if (fgets(farmer_name, sizeof(farmer_name), stdin) != NULL) {
-        size_t len = strlen(farmer_name);
-        if (len > 0 && farmer_name[len - 1] == '\n') {
-            farmer_name[len - 1] = '\0';
-        }
-    }
-    if (strlen(farmer_name) == 0) {
-        strcpy(farmer_name, "Фермер");
-    }
+    // персонажа изначально нет
+    struct Player* player = NULL;
+    struct Map* map = NULL;
 
     char item_names[MAX_ITEMS][MAX_NAME_LEN];
     loadItemNames(item_names);
 
-    int current_day = 1;
-    int current_hour = 8;
-
-    int inventory[MAX_ITEMS] = { 1, 0, 2, 3, 0, 4, 5, 0, 1, 2 };
-    int choice;
+    int current_day = START_DAY;
+    int current_hour = START_HOUR;
 
     while (1) {
-        printf("=== МЕНЮ ФЕРМЕРА (%s) ===\n", farmer_name);
+        printf("=== МЕНЮ ФЕРМЕРА ===\n");
         printf("[0] Выход\n");
-        printf("[1] Посмотреть на часы\n");
-        printf("[2] Промотать время (Поработать)\n");
-        printf("[3] Посмотреть инвентарь\n");
-        printf("[4] Положить предмет в слот\n");
-        printf("[5] Выбросить предмет\n");
-        printf("[6] Быстрый доступ (В8)\n");
-        printf("[7] Поиск предмета по названию\n");
-        printf("[8] Сделать запись в дневник (diary.txt)\n");
-        printf("[9] Анализатор логов (input.txt → output.txt)\n");
+        printf("[1] Создать / пересоздать персонажа\n");
+        printf("[2] Карточка персонажа\n");
+        printf("[3] Время и режим дня\n");
+        printf("[4] Посмотреть инвентарь\n");
+        printf("[5] Положить предмет в слот\n");
+        printf("[6] Выбросить предмет\n");
+        printf("[7] Быстрый доступ (В8)\n");
+        printf("[8] Поиск предмета по названию\n");
+        printf("[9] Сделать запись в дневник (diary.txt)\n");
         printf("[10] Отправиться в приключение\n");
-        printf("Выберите действие: ");
+        printf("[11] Анализатор логов (input.txt -> output.txt)\n");
 
-        if (scanf("%d", &choice) != 1) {
-            clearInputBuffer();
-            printf("Ошибка. Введите число от 0 до 10.\n\n");
-            continue;
-        }
+        int choice = getIntSafe("Выберите действие: ");
 
         switch (choice) {
         case 0:
+            deletePlayer(&player);
+            freeMap(&map);
             printf("Пока, фермер!\n");
             return 0;
 
-        case 1:
-            // П1: показать время
-            printf("Сейчас день %d, время: %02d:00\n", current_day, current_hour);
+        case 1: {
+            if (player != NULL) {
+                printf("Персонаж '%s' уже существует. Точно удалить и создать нового? (1 = да, 0 = нет)\n", player->name);
+                int confirm = getIntSafe("");
+                if (confirm != 1) {
+                    printf("Ок, оставляем старого.\n\n");
+                    break;
+                }
+                deletePlayer(&player);
+            }
+            player = createPlayer();
+            if (player == NULL) {
+                printf("!Ошибка! Не удалось выделить память под персонажа.\n\n");
+            }
+            else {
+                printf("Персонаж '%s' создан!\n\n", player->name);
+            }
+            break;
+        }
+
+        case 2:
+            if (player == NULL) {
+                printf("Персонаж ещё не создан. Сначала выберите пункт [1].\n\n");
+                break;
+            }
+            showPlayerCard(player, current_day, current_hour, item_names);
             break;
 
-        case 2: 
-            workTime(&current_day, &current_hour); 
-            break;
+        case 3: {
+            int sub;
+            do {
+                printf("\n=== ВРЕМЯ И РЕЖИМ ДНЯ ===\n");
+                printf("[1] Посмотреть на часы\n");
+                printf("[2] Пропустить время (Ждать)\n");
+                printf("[3] Отдых (Лечь спать)\n");
+                printf("[0] Назад\n");
+                sub = getIntSafe("Выберите действие: ");
 
-        case 3:
-            printInventory(inventory, item_names);
+                switch (sub) {
+                case 1:
+                    printf("Сейчас день %d, время: %02d:00\n\n", current_day, current_hour);
+                    break;
+                case 2:
+                    workTime(&current_day, &current_hour);
+                    break;
+                case 3:
+                    current_day++;
+                    current_hour = SLEEP_HOUR;
+                    if (player != NULL) {
+                        player->hp = player->max_hp;
+                        player->stamina = player->max_stamina;
+                    }
+                    printf("Вы выспались. Наступило утро: день %d, %02d:00\n\n", current_day, current_hour);
+                    break;
+                case 0:
+                    break;
+                default:
+                    printf("Неверный выбор.\n\n");
+                    break;
+                }
+            } while (sub != 0);
             break;
+        }
 
-        case 4: 
-            putItem(inventory, item_names);
+        case 4:
+            if (player == NULL) {
+                printf("Персонаж ещё не создан. Сначала выберите пункт [1].\n\n");
+                break;
+            }
+            printInventory(player->inventory, item_names);
             break;
 
         case 5:
-            dropItem(inventory, item_names);
+            if (player == NULL) {
+                printf("Персонаж ещё не создан. Сначала выберите пункт [1].\n\n");
+                break;
+            }
+            putItem(player->inventory, item_names);
             break;
 
-        case 6: 
-            quickAccess(inventory, item_names);
+        case 6:
+            if (player == NULL) {
+                printf("Персонаж ещё не создан. Сначала выберите пункт [1].\n\n");
+                break;
+            }
+            dropItem(player->inventory, item_names);
             break;
 
-        case 7: //а тут обработка вывода
-            searchItemByName(inventory, item_names);
+        case 7:
+            if (player == NULL) {
+                printf("Персонаж ещё не создан. Сначала выберите пункт [1].\n\n");
+                break;
+            }
+            quickAccess(player->inventory, item_names);
             break;
 
         case 8:
-            writeDiary(farmer_name, current_day, current_hour, inventory, item_names);
+            if (player == NULL) {
+                printf("Персонаж ещё не создан. Сначала выберите пункт [1].\n\n");
+                break;
+            }
+            searchItemByName(player->inventory, item_names);
             break;
 
         case 9:
-            analyzeLogs("input.txt", "output.txt");
+            if (player == NULL) {
+                printf("Персонаж ещё не создан. Сначала выберите пункт [1].\n\n");
+                break;
+            }
+            writeDiary(player->name, current_day, current_hour, player->inventory, item_names);
             break;
 
-        case 10: {
-            // очистка буфера после scanf
-            clearInputBuffer();
-            startAdventure();
+        case 10:
+            if (player == NULL) {
+                printf("Персонаж ещё не создан. Сначала выберите пункт [1].\n\n");
+                break;
+            }
+            if (player->stamina <= 0) {
+                printf("Выносливость на нуле! Сначала отдохните (пункт [3] -> Отдых).\n\n");
+                break;
+            }
+            if (current_hour == NIGHT_HOUR) {
+                printf("Уже 02:00 ночи — в приключение нельзя! Пора спать.\n\n");
+                break;
+            }
+            startAdventure(&map, player, &current_day, &current_hour);
             break;
-        }
+
+        case 11:
+            analyzeLogs("input.txt", "output.txt");
+            break;
 
         default:
             printf("Неверный выбор. Попробуйте еще раз.\n\n");
             break;
         }
     }
-
-    return 0;
 }
