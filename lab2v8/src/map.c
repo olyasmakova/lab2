@@ -346,9 +346,13 @@ void startAdventure(struct Map** mapPtr, struct Player* player, int* day, int* h
             if (!moveToNextMap(map, player, day, hour)) break;
         }
 
-        // каждый успешный шаг тратит 1 выносливости
+        // каждый успешный шаг тратит выносливость (кольцо жадности шаг становиться дороже)
         if (moved) {
-            player->stamina -= STEP_STAMINA_COST;
+            int stepCost = STEP_STAMINA_COST;
+            if (player->active_relic.effect == RELIC_GREED) {
+                stepCost = RELIC_GREED_STEP_COST;
+            }
+            player->stamina -= stepCost;
 
             // камень тролля. +1 HP за каждый успешный шаг (если есть куда лечить)
             if (player->active_relic.effect == RELIC_HEAL && player->hp < player->max_hp) {

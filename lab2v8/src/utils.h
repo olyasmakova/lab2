@@ -39,6 +39,7 @@
 #define RELIC_DROP_CHANCE  20  // шанс 20% найти реликвию при переходе
 #define RELIC_SELL_PRICE   25  // цена продажи реликвии на месте
 #define RELIC_QUICK_COST   1   // стоимость перехода с сапогами скороходами
+#define RELIC_GREED_STEP_COST 2  // шаг с кольцом жадности тратит 2 стамины
 
 // перечисление типов карт
 enum GameMode {
