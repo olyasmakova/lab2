@@ -89,7 +89,7 @@ void generateForest(struct Map* map) {
     // заполняем препятствиями
     for (int y = 0; y < h; y++) {
         for (int x = 0; x < w; x++) {
-            if (rand() % 100 < OBSTACLE_CHANCE) {
+            if (rand() % PERCENT_MAX < OBSTACLE_CHANCE) {
                 map->grid[y][x] = (rand() % 2 == 0) ? CHAR_TREE : CHAR_ROCK;
             }
             else {
@@ -145,7 +145,7 @@ void generateCave(struct Map* map) {
 
     for (int y = 0; y < h; y++) {
         for (int x = 0; x < w; x++) {
-            if (rand() % 100 < CAVE_WALL_CHANCE) {
+            if (rand() % PERCENT_MAX < CAVE_WALL_CHANCE) {
                 map->grid[y][x] = CHAR_WALL;
             }
             else {
@@ -225,11 +225,11 @@ int moveToNextMap(struct Map* map, struct Player* player, int* day, int* hour) {
     printf("Награда за новую карту: +%d золота!\n", reward);
 
     //шанс 20% на реликвию
-    if (rand() % 100 < RELIC_DROP_CHANCE) {
+    if (rand() % PERCENT_MAX < RELIC_DROP_CHANCE) {
         Relic found = generateRandomRelic();
         printf("\n!!! НАЙДЕНА РЕЛИКВИЯ: %s !!!\n", found.name);
         printf("[1] Надеть (старый талисман пропадёт)\n");
-        printf("[2] Продать за 25 золотых\n");
+        printf("[2] Продать за %d золотых\n", RELIC_SELL_PRICE);
         int choice = getIntSafe("Ваш выбор: ");
         if (choice == 1) {
             player->active_relic = found;
@@ -305,6 +305,10 @@ void startAdventure(struct Map** mapPtr, struct Player* player, int* day, int* h
     printf("         @ = ты, ^ = костёр (Q — домой), O = вход в пещеру\n\n");
 
     while (map->active) {
+        // синхронизируем координаты игрока с картой (x и y хранятся в Player)
+        player->x = map->heroX;
+        player->y = map->heroY;
+
         printHUD(player, map, *day, *hour);
         printMap(map);
 
@@ -337,10 +341,6 @@ void startAdventure(struct Map** mapPtr, struct Player* player, int* day, int* h
             break;
         }
 
-        // наступили на O переход на новую ккрту
-        if (moved && map->grid[map->heroY][map->heroX] == CHAR_HERO) {
-            // обычный шаг
-        }
         if (moved && map->underHero == CHAR_CAVE) {
             // moveHero вернул 1, переход делаем здесь
             if (!moveToNextMap(map, player, day, hour)) break;

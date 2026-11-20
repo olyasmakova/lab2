@@ -71,102 +71,46 @@ int main() {
         }
 
         case 2:
-            if (player == NULL) {
-                printf("Персонаж ещё не создан. Сначала выберите пункт [1].\n\n");
-                break;
-            }
+            if (!playerExists(player)) break;
             showPlayerCard(player, current_day, current_hour, item_names);
             break;
 
-        case 3: {
-            int sub;
-            do {
-                printf("\n=== ВРЕМЯ И РЕЖИМ ДНЯ ===\n");
-                printf("[1] Посмотреть на часы\n");
-                printf("[2] Пропустить время (Ждать)\n");
-                printf("[3] Отдых (Лечь спать)\n");
-                printf("[0] Назад\n");
-                sub = getIntSafe("Выберите действие: ");
-
-                switch (sub) {
-                case 1:
-                    printf("Сейчас день %d, время: %02d:00\n\n", current_day, current_hour);
-                    break;
-                case 2:
-                    workTime(&current_day, &current_hour);
-                    break;
-                case 3:
-                    current_day++;
-                    current_hour = SLEEP_HOUR;
-                    if (player != NULL) {
-                        player->hp = player->max_hp;
-                        player->stamina = player->max_stamina;
-                    }
-                    printf("Вы выспались. Наступило утро: день %d, %02d:00\n\n", current_day, current_hour);
-                    break;
-                case 0:
-                    break;
-                default:
-                    printf("Неверный выбор.\n\n");
-                    break;
-                }
-            } while (sub != 0);
+        case 3:
+            showTimeMenu(player, &current_day, &current_hour);
             break;
-        }
 
         case 4:
-            if (player == NULL) {
-                printf("Персонаж ещё не создан. Сначала выберите пункт [1].\n\n");
-                break;
-            }
+            if (!playerExists(player)) break;
             printInventory(player->inventory, item_names);
             break;
 
         case 5:
-            if (player == NULL) {
-                printf("Персонаж ещё не создан. Сначала выберите пункт [1].\n\n");
-                break;
-            }
+            if (!playerExists(player)) break;
             putItem(player->inventory, item_names);
             break;
 
         case 6:
-            if (player == NULL) {
-                printf("Персонаж ещё не создан. Сначала выберите пункт [1].\n\n");
-                break;
-            }
+            if (!playerExists(player)) break;
             dropItem(player->inventory, item_names);
             break;
 
         case 7:
-            if (player == NULL) {
-                printf("Персонаж ещё не создан. Сначала выберите пункт [1].\n\n");
-                break;
-            }
+            if (!playerExists(player)) break;
             quickAccess(player->inventory, item_names);
             break;
 
         case 8:
-            if (player == NULL) {
-                printf("Персонаж ещё не создан. Сначала выберите пункт [1].\n\n");
-                break;
-            }
+            if (!playerExists(player)) break;
             searchItemByName(player->inventory, item_names);
             break;
 
         case 9:
-            if (player == NULL) {
-                printf("Персонаж ещё не создан. Сначала выберите пункт [1].\n\n");
-                break;
-            }
+            if (!playerExists(player)) break;
             writeDiary(player->name, current_day, current_hour, player->inventory, item_names);
             break;
 
         case 10:
-            if (player == NULL) {
-                printf("Персонаж ещё не создан. Сначала выберите пункт [1].\n\n");
-                break;
-            }
+            if (!playerExists(player)) break;
             if (player->stamina <= 0) {
                 printf("Выносливость на нуле! Сначала отдохните (пункт [3] -> Отдых).\n\n");
                 break;

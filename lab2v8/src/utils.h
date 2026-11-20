@@ -41,6 +41,9 @@
 #define RELIC_QUICK_COST   1   // стоимость перехода с сапогами скороходами
 #define RELIC_GREED_STEP_COST 2  // шаг с кольцом жадности тратит 2 стамины
 
+#define RELIC_TYPES_COUNT  3   // количество видов реликвий
+#define PERCENT_MAX        100 // шкала для расчёта процентов (шансы)
+
 // перечисление типов карт
 enum GameMode {
     MODE_FOREST = 1,

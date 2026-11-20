@@ -25,6 +25,9 @@ struct Player* createPlayer(void) {
     p->max_stamina = START_MAX_STAMINA;
     p->stamina = p->max_stamina;
     p->gold = 0;
+    p->gold = 0;
+    p->x = 0;
+    p->y = 0;
 
     // стартовая реликвия, у героя пока ничего не надето
     p->active_relic.effect = RELIC_NONE;
@@ -54,6 +57,11 @@ void showPlayerCard(const struct Player* player, int day, int hour, const char n
     printf("Здоровье: %d/%d\n", player->hp, player->max_hp);
     printf("Выносливость: %d/%d\n", player->stamina, player->max_stamina);
     printf("Золото: %d\n", player->gold);
+    if (player->active_relic.effect == RELIC_NONE)
+        printf("Реликвия: нет\n");
+    else
+        printf("Реликвия: %s\n", player->active_relic.name);
+
     printf("Сейчас день %d, время: %02d:00\n", day, hour);
     printInventory(player->inventory, names);
 }
@@ -156,7 +164,7 @@ void quickAccess(int inventory[], const char names[][MAX_NAME_LEN]) {
         printf("Предмет '%s' не найден в инвентаре.\n\n", names[target_id]);
     }
     else {
-        const char* itemName = inventory[found_index] == 0 ? names[0] : names[inventory[found_index]];
+        const char* itemName = names[inventory[found_index]];
 
         int temp = inventory[0];
         inventory[0] = inventory[found_index];
@@ -170,8 +178,6 @@ void quickAccess(int inventory[], const char names[][MAX_NAME_LEN]) {
 // поиск предмета по названию
 void searchItemByName(const int inventory[], const char names[][MAX_NAME_LEN]) {
     char searchName[MAX_NAME_LEN];
-
-    clearInputBuffer();
 
     printf("Введите название предмета для поиска (например Мотыга): ");
 
@@ -202,10 +208,76 @@ void searchItemByName(const int inventory[], const char names[][MAX_NAME_LEN]) {
 
 Relic generateRandomRelic(void) {
     Relic r;
-    int type = rand() % 3;
+    int type = rand() % RELIC_TYPES_COUNT;
 
     if (type == 0) { r.effect = RELIC_GREED; r.name = "Кольцо жадности"; }
     else if (type == 1) { r.effect = RELIC_QUICK; r.name = "Сапоги-скороходы"; }
     else { r.effect = RELIC_HEAL;  r.name = "Камень тролля"; }
     return r;
+}
+
+// персонаж существует? если нет предупреждение и 0
+int playerExists(const struct Player* player) {
+    if (player == NULL) {
+        printf("Персонаж ещё не создан. Сначала выберите пункт [1].\n\n");
+        return 0;
+    }
+    return 1;
+}
+
+// [1] создание,пересоздание персонажа с подтверждением
+void ensurePlayer(struct Player** player) {
+    if (*player != NULL) {
+        printf("Персонаж '%s' уже существует. Точно удалить и создать нового? (1 = да, 0 = нет)\n", (*player)->name);
+        int confirm = getIntSafe("");
+        if (confirm != 1) {
+            printf("Ок, оставляем старого.\n\n");
+            return;
+        }
+        deletePlayer(player);
+    }
+
+    *player = createPlayer();
+    if (*player == NULL) {
+        printf("!Ошибка! Не удалось выделить память под персонажа.\n\n");
+    }
+    else {
+        printf("Персонаж '%s' создан!\n\n", (*player)->name);
+    }
+}
+
+// [3] подменю времени и режима дня
+void showTimeMenu(struct Player* player, int* day, int* hour) {
+    int sub;
+    do {
+        printf("\n=== ВРЕМЯ И РЕЖИМ ДНЯ ===\n");
+        printf("[1] Посмотреть на часы\n");
+        printf("[2] Пропустить время (Ждать)\n");
+        printf("[3] Отдых (Лечь спать)\n");
+        printf("[0] Назад\n");
+        sub = getIntSafe("Выберите действие: ");
+
+        switch (sub) {
+        case 1:
+            printf("Сейчас день %d, время: %02d:00\n\n", *day, *hour);
+            break;
+        case 2:
+            workTime(day, hour);
+            break;
+        case 3:
+            *day = *day + 1;
+            *hour = SLEEP_HOUR;
+            if (player != NULL) {
+                player->hp = player->max_hp;
+                player->stamina = player->max_stamina;
+            }
+            printf("Вы выспались. Наступило утро: день %d, %02d:00\n\n", *day, *hour);
+            break;
+        case 0:
+            break;
+        default:
+            printf("Неверный выбор.\n\n");
+            break;
+        }
+    } while (sub != 0);
 }

@@ -31,6 +31,10 @@ void workTime(int* day, int* hour) {
         printf("Ошибка: можно ждать минимум 1 час.\n\n");
         return;
     }
+    if (*hour == NIGHT_HOUR) {
+        printf("Уже 02:00 — ночью фермер должен спать. Ложитесь отдыхать (пункт [3]).\n\n");
+        return;
+    }
 
     // ближайшие 02:00 (если уже после полуночи — сегодня, иначе завтра)
     int limit;
@@ -154,19 +158,15 @@ void analyzeLogs(const char* inputFile, const char* outputFile) {
             const char* start = NULL;
             if (strstr(buffer, "[WARN]") != NULL) {
                 start = strstr(buffer, "[WARN]");
-                if (start != NULL) start += 6;
-            }
-            else if (strstr(buffer, "[ERROR]") != NULL) {
-                start = strstr(buffer, "[ERROR]");
-                if (start != NULL) start += 7;
-            }
-
-            if (start != NULL) {
-                while (*start == ' ') start++;
+                start += sizeof("[WARN]") - 1;   // длина тега [WARN]
             }
             else {
-                start = buffer;
+                start = strstr(buffer, "[ERROR]");
+                start += sizeof("[ERROR]") - 1; // длина тега [ERROR]
             }
+
+            while (*start == ' ') start++;
+
             fprintf(out, "%d: %s", lineNum, start);
         }
     }

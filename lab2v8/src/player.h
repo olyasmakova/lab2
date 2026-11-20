@@ -22,6 +22,7 @@ struct Player {
     int stamina;
     int max_stamina;
     int gold;
+    int x, y;  // текущие координаты на карте приключения
     int inventory[MAX_ITEMS];
     Relic active_relic;  // слот под экипированную реликвию
 };
@@ -36,5 +37,9 @@ void dropItem(int inventory[], const char names[][MAX_NAME_LEN]);
 void quickAccess(int inventory[], const char names[][MAX_NAME_LEN]);
 void searchItemByName(const int inventory[], const char names[][MAX_NAME_LEN]);
 Relic generateRandomRelic(void);
+int playerExists(const struct Player* player);
+void ensurePlayer(struct Player** player);
+void showTimeMenu(struct Player* player, int* day, int* hour);
+
 
 #endif 

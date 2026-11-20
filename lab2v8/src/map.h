@@ -12,9 +12,9 @@ struct Map {
     int heroX;          // где стоит герой
     int heroY;
     char underHero;     // что было под героем
-    int mode;           // enum GameMode (1 = лес, 2 = пещера)
     int mapsTravelled;  // сколько карт пройдено
     int active;         // 1 = идёт приключение
+    enum GameMode mode; // лес или пещера
 };
 
 struct Map* createMapObject(void);
