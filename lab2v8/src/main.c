@@ -50,25 +50,9 @@ int main() {
             printf("Пока, фермер!\n");
             return 0;
 
-        case 1: {
-            if (player != NULL) {
-                printf("Персонаж '%s' уже существует. Точно удалить и создать нового? (1 = да, 0 = нет)\n", player->name);
-                int confirm = getIntSafe("");
-                if (confirm != 1) {
-                    printf("Ок, оставляем старого.\n\n");
-                    break;
-                }
-                deletePlayer(&player);
-            }
-            player = createPlayer();
-            if (player == NULL) {
-                printf("!Ошибка! Не удалось выделить память под персонажа.\n\n");
-            }
-            else {
-                printf("Персонаж '%s' создан!\n\n", player->name);
-            }
+        case 1:
+            ensurePlayer(&player);
             break;
-        }
 
         case 2:
             if (!playerExists(player)) break;
@@ -123,7 +107,7 @@ int main() {
             break;
 
         case 11:
-            analyzeLogs("input.txt", "output.txt");
+            analyzeLogs(INPUT_LOG_FILE, OUTPUT_LOG_FILE);
             break;
 
         default:

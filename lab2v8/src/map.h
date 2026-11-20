@@ -1,7 +1,8 @@
 ﻿#ifndef MAP_H
 #define MAP_H
 
-#include "utils.h"
+#include "config.h"
+#include "utils.h" 
 
 struct Player; // предварительное объявлениечтобы не было цикла включений
 

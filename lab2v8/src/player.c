@@ -25,7 +25,6 @@ struct Player* createPlayer(void) {
     p->max_stamina = START_MAX_STAMINA;
     p->stamina = p->max_stamina;
     p->gold = 0;
-    p->gold = 0;
     p->x = 0;
     p->y = 0;
 

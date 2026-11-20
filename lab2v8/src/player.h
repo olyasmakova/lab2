@@ -1,7 +1,8 @@
 ﻿#ifndef PLAYER_H
 #define PLAYER_H
 
-#include "utils.h"
+#include "config.h"
+#include "utils.h" 
 
 typedef enum {
     RELIC_NONE = 0,
@@ -40,6 +41,5 @@ Relic generateRandomRelic(void);
 int playerExists(const struct Player* player);
 void ensurePlayer(struct Player** player);
 void showTimeMenu(struct Player* player, int* day, int* hour);
-
 
 #endif 
