@@ -3,17 +3,6 @@
 
 #include "utils.h"
 
-struct Player {
-    char name[MAX_FARMER_NAME];
-    int hp;
-    int max_hp;
-    int stamina;
-    int max_stamina;
-    int gold;
-    int inventory[MAX_ITEMS];
-    Relic active_relic;  // слот под экипированную реликвию
-};
-
 typedef enum {
     RELIC_NONE = 0,
     RELIC_GREED,      // удваивает золото за пройденную карту
@@ -25,6 +14,17 @@ typedef struct {
     RelicEffect effect;
     const char* name;
 } Relic;
+
+struct Player {
+    char name[MAX_FARMER_NAME];
+    int hp;
+    int max_hp;
+    int stamina;
+    int max_stamina;
+    int gold;
+    int inventory[MAX_ITEMS];
+    Relic active_relic;  // слот под экипированную реликвию
+};
 
 struct Player* createPlayer(void);
 void deletePlayer(struct Player** player);
