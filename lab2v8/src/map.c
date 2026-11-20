@@ -62,7 +62,6 @@ void printMap(const struct Map* map) {
     }
 }
 
-// HUD над картой на каждом шаге
 void printHUD(const struct Player* player, const struct Map* map, int day, int hour) {
     printf("\nHP: %d/%d | Выносливость: %d/%d | Золото: %d | Карта: %d | Время: день %d, %02d:00\n",
         player->hp, player->max_hp,
@@ -70,6 +69,11 @@ void printHUD(const struct Player* player, const struct Map* map, int day, int h
         player->gold,
         map->mapsTravelled,
         day, hour);
+
+    if (player->active_relic.effect == RELIC_NONE)
+        printf("Реликвия: нет\n");
+    else
+        printf("Реликвия: %s\n", player->active_relic.name);
 }
 
 // generateForest теперь пишет в структуру
@@ -204,13 +208,23 @@ int moveToNextMap(struct Map* map, struct Player* player, int* day, int* hour) {
     map->mapsTravelled++;
     printf("=== Пройдено карт: %d ===\n", map->mapsTravelled);
 
-    // переход на новую карту -5 стамины, +1 час, награда золотом
-    player->stamina -= FLOOR_STAMINA_COST;
+    // переход на новую карту.стамина зависит от сапог-скороходов
+    int mapChangeCost = FLOOR_STAMINA_COST;
+    if (player->active_relic.effect == RELIC_QUICK) {
+        mapChangeCost = RELIC_QUICK_COST;   // сапоги 1 вместо 5
+        printf("Сапоги-скороходы облегчили переход! (-%d выносливости)\n", mapChangeCost);
+    }
+    player->stamina -= mapChangeCost;
+
     int reward = BASE_REWARD * map->mapsTravelled;
+    if (player->active_relic.effect == RELIC_GREED) {
+        reward *= 2;                        // кольцо жадности x2
+        printf("Кольцо жадности удваивает награду!\n");
+    }
     player->gold += reward;
     printf("Награда за новую карту: +%d золота!\n", reward);
 
-    // >>> СЮДА: шанс 20% на реликвию <<<
+    //шанс 20% на реликвию
     if (rand() % 100 < RELIC_DROP_CHANCE) {
         Relic found = generateRandomRelic();
         printf("\n!!! НАЙДЕНА РЕЛИКВИЯ: %s !!!\n", found.name);
@@ -335,6 +349,12 @@ void startAdventure(struct Map** mapPtr, struct Player* player, int* day, int* h
         // каждый успешный шаг тратит 1 выносливости
         if (moved) {
             player->stamina -= STEP_STAMINA_COST;
+
+            // камень тролля. +1 HP за каждый успешный шаг (если есть куда лечить)
+            if (player->active_relic.effect == RELIC_HEAL && player->hp < player->max_hp) {
+                player->hp += 1;
+                printf("Камень тролля восстанавливает 1 HP!\n");
+            }
         }
 
         // экстренная эвакуация(стамина 0 или время дошло до 02:00)
